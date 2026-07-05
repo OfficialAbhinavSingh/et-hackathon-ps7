@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+#
+# dev — one-command launcher for the PS7 stack.
+#
+# Runs every component implemented so far and skips whatever doesn't exist yet,
+# so this script is safe to run from day one and grows with the project.
+#
+#   ./dev              start everything that exists (orchestrator + frontend + replay feed)
+#   ./dev --no-replay  start the services but don't drive the event stream
+#
+# Env overrides: ORCH_PORT (default 8000), WEB_PORT (default 5173).
+# Secrets (e.g. ANTHROPIC_API_KEY) are read from a local .env if present.
+#
+# ── CONVENTION ──────────────────────────────────────────────────────────────
+# When you add a component that must be *running* for the system to work — a
+# server, the SSE stream, a background worker, the replay feed — add a
+# start_<name> block below and call it from main(). One-off scripts
+# (train.py, fetch_sources.py, ingest.py) are run by hand and do NOT go here.
+# See docs/README.md → "Running the stack (./dev)".
+# ─────────────────────────────────────────────────────────────────────────────
+
+set -uo pipefail
+cd "$(dirname "$0")"
+
+ORCH_PORT="${ORCH_PORT:-8000}"
+WEB_PORT="${WEB_PORT:-5173}"
+REPLAY=1
+[[ "${1:-}" == "--no-replay" ]] && REPLAY=0
+
+PIDS=()
+c_reset=$'\033[0m'; c_info=$'\033[1;36m'; c_skip=$'\033[1;33m'; c_ok=$'\033[1;32m'
+log()  { printf '%s[dev]%s %s\n'      "$c_info" "$c_reset" "$*"; }
+ok()   { printf '%s[dev]%s %s\n'      "$c_ok"   "$c_reset" "$*"; }
+skip() { printf '%s[dev skip]%s %s\n' "$c_skip" "$c_reset" "$*"; }
+
+cleanup() {
+  printf '\n'; log "shutting down…"
+  for pid in "${PIDS[@]:-}"; do kill "$pid" 2>/dev/null; done
+  wait 2>/dev/null; exit 0
+}
+trap cleanup INT TERM
+
+# Load secrets/config if a .env exists (see .env.example).
+if [[ -f .env ]]; then set -a; . ./.env; set +a; log "loaded .env"; fi
+
+# Resolve a python interpreter: prefer .venv, create it from requirements.txt if needed.
+PY=""
+setup_python() {
+  [[ -n "$PY" ]] && return
+  if [[ -x .venv/bin/python ]]; then
+    PY=".venv/bin/python"
+  elif [[ -f requirements.txt ]]; then
+    log "creating .venv + installing requirements…"
+    python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt && PY=".venv/bin/python"
+  else
+    PY="$(command -v python3 || command -v python || true)"
+  fi
+}
+
+wait_for_http() {  # wait_for_http <url> <max_seconds>
+  local url=$1 secs=${2:-20} i
+  for ((i = 0; i < secs; i++)); do
+    curl -sf "$url" >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  return 1
+}
+
+start_orchestrator() {
+  if [[ ! -f orchestrator/main.py ]]; then skip "orchestrator/ (not implemented yet)"; return; fi
+  setup_python
+  if [[ -z "$PY" ]] || ! "$PY" -c "import uvicorn" 2>/dev/null; then
+    skip "orchestrator (uvicorn not installed — pip install fastapi uvicorn)"; return
+  fi
+  log "starting orchestrator → http://localhost:$ORCH_PORT"
+  "$PY" -m uvicorn orchestrator.main:app --reload --port "$ORCH_PORT" &
+  PIDS+=($!)
+}
+
+start_frontend() {
+  if [[ ! -f frontend/package.json ]]; then skip "frontend/ (not implemented yet)"; return; fi
+  if ! command -v npm >/dev/null; then skip "frontend (npm not found)"; return; fi
+  [[ -d frontend/node_modules ]] || { log "installing frontend deps…"; ( cd frontend && npm install --silent ); }
+  log "starting frontend → http://localhost:$WEB_PORT"
+  ( cd frontend && VITE_API_URL="http://localhost:$ORCH_PORT" npm run dev -- --port "$WEB_PORT" ) &
+  PIDS+=($!)
+}
+
+start_replay() {
+  (( REPLAY )) || { skip "replay feed (--no-replay)"; return; }
+  if [[ ! -f engine/replay.py ]]; then skip "engine/replay.py (not implemented yet)"; return; fi
+  setup_python
+  [[ -n "$PY" ]] || { skip "replay (no python found)"; return; }
+  log "waiting for orchestrator health before starting replay…"
+  if wait_for_http "http://localhost:$ORCH_PORT/health" 20; then
+    log "starting replay feed → orchestrator"
+    "$PY" engine/replay.py --to "http://localhost:$ORCH_PORT/events" &
+    PIDS+=($!)
+  else
+    skip "replay (orchestrator never became healthy on :$ORCH_PORT)"
+  fi
+}
+
+main() {
+  log "PS7 dev launcher — starting implemented components"
+  start_orchestrator
+  start_frontend
+  start_replay
+  if [[ "${#PIDS[@]}" -eq 0 ]]; then
+    log "nothing to run yet — build a component, then wire it in here."
+    exit 0
+  fi
+  ok "up: ${#PIDS[@]} process(es) · dashboard → http://localhost:$WEB_PORT · api → http://localhost:$ORCH_PORT"
+  log "Ctrl-C to stop all."
+  wait
+}
+main
