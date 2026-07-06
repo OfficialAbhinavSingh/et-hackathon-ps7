@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0004",
+  "attack_technique": {
+    "id": "T1071.001",
+    "name": "Application Layer Protocol: Web Protocols"
+  },
+  "confidence": 0.1,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Short flow, low packet count on port 80 \u2014 indistinguishable from routine browsing traffic.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

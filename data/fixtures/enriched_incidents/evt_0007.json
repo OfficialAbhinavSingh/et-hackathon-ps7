@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0007",
+  "attack_technique": {
+    "id": "T1071",
+    "name": "Application Layer Protocol"
+  },
+  "confidence": 0.78,
+  "severity": "high",
+  "cve_refs": [
+    "CVE-2019-11500"
+  ],
+  "certin_refs": [],
+  "narrative": "High-entropy payload over IRC port 6667 with large outbound transfer, consistent with IRC-based command and control.",
+  "predicted_next": {
+    "tactic": "Command and Control",
+    "note": "watch for repeated connections to 198.51.100.7"
+  },
+  "suggested_action": "block_ip"
+}

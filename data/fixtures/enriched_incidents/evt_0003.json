@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0003",
+  "attack_technique": {
+    "id": "T1071.001",
+    "name": "Application Layer Protocol: Web Protocols"
+  },
+  "confidence": 0.81,
+  "severity": "high",
+  "cve_refs": [
+    "CVE-2023-4567"
+  ],
+  "certin_refs": [],
+  "narrative": "Sustained outbound flow to many destination ports over 8080 with high connection rate, consistent with C2 beaconing over an alternate HTTP port.",
+  "predicted_next": {
+    "tactic": "Command and Control",
+    "note": "watch for repeated beacon intervals from 10.0.0.7"
+  },
+  "suggested_action": "block_ip"
+}

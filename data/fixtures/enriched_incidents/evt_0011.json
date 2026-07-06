@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0011",
+  "attack_technique": {
+    "id": "T1110.001",
+    "name": "Brute Force: Password Guessing"
+  },
+  "confidence": 0.8,
+  "severity": "high",
+  "cve_refs": [
+    "CVE-2019-0708"
+  ],
+  "certin_refs": [
+    "CIAD-2024-0052"
+  ],
+  "narrative": "Elevated SYN count and connection rate against RDP port 3389, consistent with credential brute-forcing.",
+  "predicted_next": {
+    "tactic": "Lateral Movement",
+    "note": "successful RDP auth on 10.0.0.11 would enable lateral movement"
+  },
+  "suggested_action": "block_ip"
+}

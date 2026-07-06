@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0002",
+  "attack_technique": {
+    "id": "T1071.001",
+    "name": "Application Layer Protocol: Web Protocols"
+  },
+  "confidence": 0.15,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Traffic profile matches routine HTTPS; no retrieved technique matches strongly, confidence kept low.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

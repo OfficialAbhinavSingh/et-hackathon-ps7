@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0020",
+  "attack_technique": {
+    "id": "T1021.004",
+    "name": "Remote Services: SSH"
+  },
+  "confidence": 0.3,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Mild anomaly on SSH port 22 with low duration ratio; insufficient grounding for a high-confidence call.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

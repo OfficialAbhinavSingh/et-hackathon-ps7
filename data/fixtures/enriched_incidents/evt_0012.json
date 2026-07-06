@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0012",
+  "attack_technique": {
+    "id": "T1071.001",
+    "name": "Application Layer Protocol: Web Protocols"
+  },
+  "confidence": 0.11,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Short-lived low-volume flow on port 443 \u2014 consistent with routine HTTPS.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

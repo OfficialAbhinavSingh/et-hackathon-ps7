@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0005",
+  "attack_technique": {
+    "id": "T1110.001",
+    "name": "Brute Force: Password Guessing"
+  },
+  "confidence": 0.93,
+  "severity": "critical",
+  "cve_refs": [
+    "CVE-2020-14145"
+  ],
+  "certin_refs": [
+    "CIAD-2024-0031"
+  ],
+  "narrative": "High SYN count against port 22 across 40 distinct destinations indicates SSH password-guessing sweep.",
+  "predicted_next": {
+    "tactic": "Lateral Movement",
+    "note": "watch for successful SSH auth from 10.0.0.9 enabling pivoting"
+  },
+  "suggested_action": "isolate_host"
+}

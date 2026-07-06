@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0009",
+  "attack_technique": {
+    "id": "T1210",
+    "name": "Exploitation of Remote Services"
+  },
+  "confidence": 0.92,
+  "severity": "critical",
+  "cve_refs": [
+    "CVE-2017-0144"
+  ],
+  "certin_refs": [
+    "CIAD-2024-0044"
+  ],
+  "narrative": "Large outbound SMB transfer (port 445) to 35 distinct destinations, consistent with SMB exploitation and rapid lateral spread.",
+  "predicted_next": {
+    "tactic": "Exfiltration",
+    "note": "large SMB transfer volume suggests staged data ready for exfiltration"
+  },
+  "suggested_action": "isolate_host"
+}

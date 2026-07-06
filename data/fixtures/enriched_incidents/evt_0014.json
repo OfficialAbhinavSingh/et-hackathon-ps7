@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0014",
+  "attack_technique": {
+    "id": "T1071.003",
+    "name": "Application Layer Protocol: Mail Protocols"
+  },
+  "confidence": 0.12,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Small flow on SMTP port 25 \u2014 consistent with routine outbound mail.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

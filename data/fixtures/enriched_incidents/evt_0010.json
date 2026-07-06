@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0010",
+  "attack_technique": {
+    "id": "T1105",
+    "name": "Ingress Tool Transfer"
+  },
+  "confidence": 0.35,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Mild connection-rate anomaly on FTP port 21; consistent with, but not conclusive of, tool staging.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

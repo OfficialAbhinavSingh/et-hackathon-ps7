@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0017",
+  "attack_technique": {
+    "id": "T1571",
+    "name": "Non-Standard Port"
+  },
+  "confidence": 0.95,
+  "severity": "critical",
+  "cve_refs": [
+    "CVE-2024-1234"
+  ],
+  "certin_refs": [
+    "CIAD-2024-0012"
+  ],
+  "narrative": "Very large outbound transfer and elevated SYN count over non-standard port 4444, the highest-confidence exfiltration signal in this set.",
+  "predicted_next": {
+    "tactic": "Exfiltration",
+    "note": "high outbound volume from 10.0.0.2 may indicate active data theft in progress"
+  },
+  "suggested_action": "isolate_host"
+}

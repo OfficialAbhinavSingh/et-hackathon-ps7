@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0013",
+  "attack_technique": {
+    "id": "T1571",
+    "name": "Non-Standard Port"
+  },
+  "confidence": 0.89,
+  "severity": "critical",
+  "cve_refs": [
+    "CVE-2024-1234"
+  ],
+  "certin_refs": [
+    "CIAD-2024-0012"
+  ],
+  "narrative": "High-entropy payload and large outbound transfer over non-standard port 4444 across 28 destinations, consistent with Meterpreter-style C2.",
+  "predicted_next": {
+    "tactic": "Command and Control",
+    "note": "watch 10.0.0.8 for repeated connections on non-standard ports"
+  },
+  "suggested_action": "isolate_host"
+}

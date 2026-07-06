@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0001",
+  "attack_technique": {
+    "id": "T1048",
+    "name": "Exfiltration Over Alternative Protocol"
+  },
+  "confidence": 0.87,
+  "severity": "high",
+  "cve_refs": [
+    "CVE-2024-1234"
+  ],
+  "certin_refs": [
+    "CIAD-2024-0012"
+  ],
+  "narrative": "Large outbound transfer on non-standard port 4444 after hours, consistent with exfiltration over an alternative protocol.",
+  "predicted_next": {
+    "tactic": "Lateral Movement",
+    "note": "watch east-west traffic from 10.0.0.5"
+  },
+  "suggested_action": "isolate_host"
+}

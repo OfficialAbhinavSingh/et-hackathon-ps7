@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0008",
+  "attack_technique": {
+    "id": "T1071.004",
+    "name": "Application Layer Protocol: DNS"
+  },
+  "confidence": 0.12,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Low packet count, short flow duration on port 53 \u2014 consistent with routine DNS resolution.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

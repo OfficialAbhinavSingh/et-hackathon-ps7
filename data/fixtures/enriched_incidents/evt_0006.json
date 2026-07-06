@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0006",
+  "attack_technique": {
+    "id": "T1005",
+    "name": "Data from Local System"
+  },
+  "confidence": 0.25,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Elevated inbound bytes on MySQL port 3306; no strong grounding evidence of malicious staging.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

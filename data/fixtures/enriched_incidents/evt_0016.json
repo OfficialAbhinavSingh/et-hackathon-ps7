@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0016",
+  "attack_technique": {
+    "id": "T1071.001",
+    "name": "Application Layer Protocol: Web Protocols"
+  },
+  "confidence": 0.22,
+  "severity": "low",
+  "cve_refs": [],
+  "certin_refs": [],
+  "narrative": "Mild inbound-byte anomaly on MySQL port 3306; no strong grounding for a specific technique.",
+  "predicted_next": null,
+  "suggested_action": "monitor"
+}

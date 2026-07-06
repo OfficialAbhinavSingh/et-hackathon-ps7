@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0015",
+  "attack_technique": {
+    "id": "T1110.001",
+    "name": "Brute Force: Password Guessing"
+  },
+  "confidence": 0.68,
+  "severity": "medium",
+  "cve_refs": [
+    "CVE-2016-10229"
+  ],
+  "certin_refs": [],
+  "narrative": "Elevated SYN count and connection rate against Telnet port 23 across 19 destinations, consistent with default-credential scanning.",
+  "predicted_next": {
+    "tactic": "Lateral Movement",
+    "note": "watch for successful telnet auth from 10.0.0.4"
+  },
+  "suggested_action": "block_ip"
+}
