@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0008",
+  "timestamp": "2026-07-10T13:56:00Z",
+  "src_ip": "10.0.0.18",
+  "dst_ip": "10.0.0.1",
+  "anomaly_score": 0.09,
+  "is_anomaly": false,
+  "top_features": [
+    "packet_count",
+    "bytes_out",
+    "flow_duration"
+  ],
+  "raw_features": {
+    "packet_count": 22,
+    "bytes_out": 3000,
+    "flow_duration": 400,
+    "dst_port": 53
+  }
+}

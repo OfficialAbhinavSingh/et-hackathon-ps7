@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0015",
+  "timestamp": "2026-07-10T14:45:00Z",
+  "src_ip": "10.0.0.4",
+  "dst_ip": "198.51.100.88",
+  "anomaly_score": 0.71,
+  "is_anomaly": true,
+  "top_features": [
+    "conn_rate",
+    "unique_dst_ports",
+    "syn_count"
+  ],
+  "raw_features": {
+    "conn_rate": 12.3,
+    "unique_dst_ports": 19,
+    "syn_count": 640,
+    "dst_port": 23
+  }
+}

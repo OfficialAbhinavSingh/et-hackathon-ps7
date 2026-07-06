@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt_0007",
+  "timestamp": "2026-07-10T13:49:00Z",
+  "src_ip": "10.0.0.3",
+  "dst_ip": "198.51.100.7",
+  "anomaly_score": 0.76,
+  "is_anomaly": true,
+  "top_features": [
+    "bytes_out",
+    "dst_port",
+    "payload_entropy"
+  ],
+  "raw_features": {
+    "bytes_out": 1200000,
+    "dst_port": 6667,
+    "payload_entropy": 7.8
+  }
+}
