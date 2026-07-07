@@ -1,0 +1,8 @@
+# Backend spine — PS7
+fastapi
+uvicorn[standard]
+sse-starlette
+pydantic>=2
+# dev / test
+pytest
+httpx

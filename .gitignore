@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Data (big / cached)
+data/intel/
+*.joblib
+
+# Runtime state
+audit_log.jsonl
