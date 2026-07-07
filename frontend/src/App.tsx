@@ -88,9 +88,11 @@ export default function App() {
             source: {DATA_SOURCE}
           </span>
           <ConnectionBadge state={connection} />
-          <Button variant="danger" size="sm" onClick={() => dataService.triggerAttack()}>
-            <Zap size={14} /> Trigger attack
-          </Button>
+          {DATA_SOURCE !== "live" && (
+            <Button variant="danger" size="sm" onClick={() => dataService.triggerAttack()}>
+              <Zap size={14} /> Trigger attack
+            </Button>
+          )}
         </div>
       </header>
 
