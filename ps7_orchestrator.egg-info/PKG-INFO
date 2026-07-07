@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: ps7-orchestrator
+Version: 0.1.0
+Summary: PS7 SOAR orchestrator — the detection-to-response backend spine
+Requires-Python: >=3.11
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: sse-starlette
+Requires-Dist: pydantic>=2
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: httpx; extra == "dev"

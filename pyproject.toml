@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ps7-orchestrator"
+version = "0.1.0"
+description = "PS7 SOAR orchestrator — the detection-to-response backend spine"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sse-starlette",
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
+[tool.setuptools]
+packages = ["orchestrator"]
+
+[tool.pytest.ini_options]
+# An editable install (`pip install -e .`) makes `orchestrator` importable everywhere —
+# pytest, uvicorn, scripts, IDEs — not just under pytest. pythonpath is a fallback so the
+# suite still runs on a fresh clone before the install.
+pythonpath = ["."]
+testpaths = ["tests"]

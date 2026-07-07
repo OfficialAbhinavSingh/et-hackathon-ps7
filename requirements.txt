@@ -1,0 +1,4 @@
+# Backend spine — one-step setup (editable install + runtime + dev deps):
+#   pip install -r requirements.txt
+# Dependencies themselves live in pyproject.toml [project] (single source of truth).
+-e .[dev]

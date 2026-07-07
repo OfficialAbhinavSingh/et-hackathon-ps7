@@ -1,0 +1,35 @@
+[
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0001",
+    "timestamp": "2026-07-10T12:00:00Z",
+    "src_ip": "10.0.0.5",
+    "dst_ip": "10.0.0.9",
+    "anomaly_score": 0.95,
+    "is_anomaly": true,
+    "top_features": ["flow_duration", "bytes_out", "dst_port"],
+    "raw_features": { "flow_duration": 12000, "bytes_out": 4500000, "dst_port": 4444 }
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0002",
+    "timestamp": "2026-07-10T12:01:00Z",
+    "src_ip": "10.0.0.6",
+    "dst_ip": "10.0.0.9",
+    "anomaly_score": 0.78,
+    "is_anomaly": true,
+    "top_features": ["dst_port", "connection_count"],
+    "raw_features": { "dst_port": 0, "connection_count": 300 }
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0003",
+    "timestamp": "2026-07-10T12:02:00Z",
+    "src_ip": "10.0.0.7",
+    "dst_ip": "10.0.0.2",
+    "anomaly_score": 0.88,
+    "is_anomaly": true,
+    "top_features": ["failed_logins"],
+    "raw_features": { "failed_logins": 57 }
+  }
+]
