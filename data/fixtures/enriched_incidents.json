@@ -1,0 +1,41 @@
+[
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0001",
+    "attack_technique": { "id": "T1048", "name": "Exfiltration Over Alternative Protocol" },
+    "confidence": 0.87,
+    "severity": "high",
+    "cve_refs": ["CVE-2024-1234"],
+    "certin_refs": ["CIAD-2024-0012"],
+    "narrative": "Large outbound transfer on non-standard port 4444 after hours from 10.0.0.5 to an external host — consistent with data exfiltration over an alternative protocol.",
+    "predicted_next": { "tactic": "Lateral Movement", "note": "watch east-west traffic from 10.0.0.5" },
+    "suggested_action": "isolate_host",
+    "ground_truth_technique": "T1048"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0002",
+    "attack_technique": { "id": "T1046", "name": "Network Service Discovery" },
+    "confidence": 0.72,
+    "severity": "medium",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Sequential connections to many destination ports on 10.0.0.9 from 10.0.0.6 — port-scanning / service discovery behaviour.",
+    "predicted_next": { "tactic": "Lateral Movement", "note": "monitor for follow-on authentication attempts" },
+    "suggested_action": "monitor",
+    "ground_truth_technique": "T1046"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0003",
+    "attack_technique": { "id": "T1110", "name": "Brute Force" },
+    "confidence": 0.80,
+    "severity": "high",
+    "cve_refs": ["CVE-2023-9999"],
+    "certin_refs": ["CIAD-2023-0044"],
+    "narrative": "57 failed authentication attempts from 10.0.0.7 against the domain controller 10.0.0.2 in a short window — brute-force / password-spraying.",
+    "predicted_next": { "tactic": "Credential Access", "note": "possible successful credential compromise; watch for new sessions" },
+    "suggested_action": "block_ip",
+    "ground_truth_technique": "T1110"
+  }
+]
