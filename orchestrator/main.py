@@ -12,14 +12,21 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from orchestrator.audit import AuditLog
 from orchestrator.pipeline import Pipeline
 from orchestrator.playbooks import PlaybookEngine
-from orchestrator.schemas import AnomalyEvent, EnrichedIncident
+from orchestrator.schemas import AnomalyEvent, AttackTechnique, EnrichedIncident
 
 DEFAULT_FIXTURES = "data/fixtures/enriched_incidents.json"
+
+
+class ApproveRequest(BaseModel):
+    """Body of POST /approve/{id}. The analyst may confirm/correct the technique."""
+
+    confirmed_technique: AttackTechnique | None = None
 
 
 class Broadcaster:
@@ -97,13 +104,14 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
     @app.post("/events")
     async def ingest(event: AnomalyEvent):
         result = pipeline.process(event)
-        record = {
-            "incident": result["incident"].model_dump(mode="json"),
-            "action": result["action"].model_dump(mode="json"),
-        }
-        incidents[event.event_id] = record
-        await broadcaster.publish({"type": "incident", **record})
-        return {"event_id": event.event_id, "status": record["action"]["status"]}
+        incident = result["incident"].model_dump(mode="json")
+        action = result["action"].model_dump(mode="json")
+        incidents[event.event_id] = {"incident": incident, "action": action}
+        # Three typed frames the dashboard accumulates by event_id (contract with frontend).
+        await broadcaster.publish({"kind": "anomaly", "payload": event.model_dump(mode="json")})
+        await broadcaster.publish({"kind": "enriched", "payload": incident})
+        await broadcaster.publish({"kind": "containment", "payload": action})
+        return {"event_id": event.event_id, "status": action["status"]}
 
     @app.get("/incidents")
     def list_incidents():
@@ -116,20 +124,23 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
         return incidents[event_id]
 
     @app.post("/approve/{event_id}")
-    async def approve(event_id: str):
+    async def approve(event_id: str, body: ApproveRequest | None = None):
+        confirmed = body.confirmed_technique.model_dump() if body and body.confirmed_technique else None
         try:
-            released = pipeline.approve(event_id)
+            released = pipeline.approve(event_id, confirmed_technique=confirmed)
         except KeyError:
             raise HTTPException(status_code=404, detail="no action pending approval")
         action = released.model_dump(mode="json")
         if event_id in incidents:
             incidents[event_id]["action"] = action
-        await broadcaster.publish({"type": "action_update", "event_id": event_id, "action": action})
+        # The status change arrives back on /stream as a fresh containment frame.
+        await broadcaster.publish({"kind": "containment", "payload": action})
         return action
 
     @app.get("/audit")
     def get_audit():
-        return {"verified": audit.verify(), "entries": audit.read_all()}
+        # Bare array of flat AuditEntry — the dashboard re-verifies the chain client-side.
+        return audit.read_all()
 
     @app.get("/stream")
     async def stream():

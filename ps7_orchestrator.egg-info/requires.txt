@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+sse-starlette
+pydantic>=2
+
+[dev]
+pytest
+httpx

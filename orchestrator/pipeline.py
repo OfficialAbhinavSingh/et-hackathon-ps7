@@ -8,7 +8,12 @@ and so Phase 3 can swap the stub enrichment for the real LLM agent without touch
 """
 
 from orchestrator import policy
-from orchestrator.schemas import ActionStatus
+from orchestrator.schemas import ActionStatus, ActionType
+
+
+def _target_for(action: ActionType, event) -> str:
+    # block_ip stops the external counterparty; the rest act on the internal host.
+    return event.dst_ip if action == ActionType.block_ip else event.src_ip
 
 
 class Pipeline:
@@ -21,42 +26,40 @@ class Pipeline:
     def process(self, event) -> dict:
         incident = self.enrich(event)
         decision = self.decide(event.anomaly_score, incident.severity)
+        requires_approval = decision.requires_human_approval
         status = (
-            ActionStatus.pending_approval
-            if decision.requires_human_approval
-            else ActionStatus.simulated_success
+            ActionStatus.pending_approval if requires_approval else ActionStatus.simulated_success
+        )
+        target = _target_for(decision.action, event)
+        detail = (
+            f"{incident.attack_technique.id} ({incident.severity.value}, "
+            f"conf {incident.confidence:.2f}) -> {decision.action.value} on {target}; "
+            f"{incident.narrative}"
         )
         record = self.audit.append(
-            {
-                "event_id": event.event_id,
-                "src_ip": event.src_ip,
-                "dst_ip": event.dst_ip,
-                "technique": incident.attack_technique.id,
-                "severity": incident.severity.value,
-                "action": decision.action.value,
-                "status": status.value,
-                "requires_human_approval": decision.requires_human_approval,
-                "actor": "system",
-            }
+            event_id=event.event_id,
+            action=decision.action.value,
+            actor="system",
+            detail=detail,
         )
         action = self.playbooks.run(
             action=decision.action,
             event_id=event.event_id,
-            target=event.src_ip,
-            requires_human_approval=decision.requires_human_approval,
-            audit_log_id=record["entry_hash"],
+            target=target,
+            requires_human_approval=requires_approval,
+            audit_log_id=record["audit_log_id"],
         )
         return {"incident": incident, "action": action}
 
-    def approve(self, event_id: str, approver: str = "analyst"):
+    def approve(self, event_id: str, approver: str = "analyst", confirmed_technique=None):
         released = self.playbooks.approve(event_id, approver)
+        detail = f"human-approved; simulated execution of {released.action.value} on {released.target}"
+        if confirmed_technique:
+            detail += f"; confirmed_technique={confirmed_technique.get('id')}"
         self.audit.append(
-            {
-                "event_id": event_id,
-                "action": released.action.value,
-                "target": released.target,
-                "status": released.status.value,
-                "actor": released.actor,
-            }
+            event_id=event_id,
+            action=released.action.value,
+            actor=released.actor,
+            detail=detail,
         )
         return released

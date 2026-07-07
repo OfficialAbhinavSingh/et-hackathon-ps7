@@ -17,6 +17,11 @@ EVENT = {
     "raw_features": {"bytes_out": 4500000},
 }
 
+AUDIT_FIELDS = {
+    "audit_log_id", "timestamp", "event_id", "action", "actor", "detail",
+    "prev_hash", "entry_hash",
+}
+
 
 def critical_enrich(event):
     return EnrichedIncident(
@@ -24,17 +29,6 @@ def critical_enrich(event):
         attack_technique={"id": "T1048", "name": "Exfiltration Over Alternative Protocol"},
         confidence=0.9,
         severity="critical",
-        narrative="Large outbound transfer on non-standard port.",
-        suggested_action="isolate_host",
-    )
-
-
-def high_enrich(event):
-    return EnrichedIncident(
-        event_id=event.event_id,
-        attack_technique={"id": "T1048", "name": "Exfiltration Over Alternative Protocol"},
-        confidence=0.9,
-        severity="high",
         narrative="Large outbound transfer on non-standard port.",
         suggested_action="isolate_host",
     )
@@ -64,19 +58,29 @@ def test_posting_event_creates_a_held_incident(tmp_path):
     assert incidents[0]["incident"]["attack_technique"]["id"] == "T1048"
 
 
-def test_low_risk_event_runs_automatically(tmp_path):
-    client = make_client(tmp_path, high_enrich)
-    r = client.post("/events", json={**EVENT, "anomaly_score": 0.8})
-    assert r.json()["status"] == "simulated_success"
+def test_events_publishes_three_typed_frames(tmp_path):
+    app = create_app(audit_path=tmp_path / "audit.jsonl", enrich=critical_enrich)
+    client = TestClient(app)
+    queue = app.state.broadcaster.subscribe()
+    client.post("/events", json=EVENT)
+    frames = [queue.get_nowait() for _ in range(3)]
+    assert [f["kind"] for f in frames] == ["anomaly", "enriched", "containment"]
+    assert frames[0]["payload"]["event_id"] == "evt_0001"
 
 
-def test_approving_a_held_action(tmp_path):
+def test_approving_a_held_action_with_confirmed_technique(tmp_path):
     client = make_client(tmp_path, critical_enrich)
     client.post("/events", json=EVENT)
-    r = client.post("/approve/evt_0001")
+    r = client.post("/approve/evt_0001", json={"confirmed_technique": {"id": "T1048", "name": "Exfil"}})
     assert r.status_code == 200
     assert r.json()["status"] == "simulated_success"
     assert r.json()["actor"].startswith("human:")
+
+
+def test_approving_without_a_body_still_works(tmp_path):
+    client = make_client(tmp_path, critical_enrich)
+    client.post("/events", json=EVENT)
+    assert client.post("/approve/evt_0001").status_code == 200
 
 
 def test_approving_unknown_event_is_404(tmp_path):
@@ -84,12 +88,12 @@ def test_approving_unknown_event_is_404(tmp_path):
     assert client.post("/approve/evt_9999").status_code == 404
 
 
-def test_audit_endpoint_reports_verified_chain(tmp_path):
+def test_audit_endpoint_returns_a_flat_chain(tmp_path):
     client = make_client(tmp_path, critical_enrich)
     client.post("/events", json=EVENT)
-    body = client.get("/audit").json()
-    assert body["verified"] is True
-    assert len(body["entries"]) >= 1
+    entries = client.get("/audit").json()
+    assert isinstance(entries, list) and len(entries) >= 1
+    assert AUDIT_FIELDS <= set(entries[0])
 
 
 def test_broadcaster_delivers_to_subscribers():

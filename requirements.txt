@@ -1,8 +1,4 @@
-# Backend spine — PS7
-fastapi
-uvicorn[standard]
-sse-starlette
-pydantic>=2
-# dev / test
-pytest
-httpx
+# Backend spine — one-step setup (editable install + runtime + dev deps):
+#   pip install -r requirements.txt
+# Dependencies themselves live in pyproject.toml [project] (single source of truth).
+-e .[dev]
