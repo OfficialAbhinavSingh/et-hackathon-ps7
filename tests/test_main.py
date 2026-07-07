@@ -96,6 +96,24 @@ def test_audit_endpoint_returns_a_flat_chain(tmp_path):
     assert AUDIT_FIELDS <= set(entries[0])
 
 
+def test_frames_are_recorded_for_reconnect_backlog(tmp_path):
+    app = create_app(audit_path=tmp_path / "audit.jsonl", enrich=critical_enrich)
+    client = TestClient(app)
+    client.post("/events", json=EVENT)
+    kinds = [m["kind"] for m in app.state.messages]
+    assert kinds == ["anomaly", "enriched", "containment"]
+
+
+def test_approval_is_appended_to_the_backlog(tmp_path):
+    app = create_app(audit_path=tmp_path / "audit.jsonl", enrich=critical_enrich)
+    client = TestClient(app)
+    client.post("/events", json=EVENT)
+    client.post("/approve/evt_0001")
+    last = app.state.messages[-1]
+    assert last["kind"] == "containment"
+    assert last["payload"]["status"] == "simulated_success"
+
+
 def test_broadcaster_delivers_to_subscribers():
     async def scenario():
         b = Broadcaster()

@@ -96,6 +96,11 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
     pipeline = Pipeline(enrich=enrich, audit=audit, playbooks=playbooks)
     broadcaster = Broadcaster()
     incidents: dict[str, dict] = {}
+    messages: list[dict] = []  # every frame ever sent — replayed to new/reconnecting clients
+
+    async def publish(message: dict) -> None:
+        messages.append(message)
+        await broadcaster.publish(message)
 
     @app.get("/health")
     def health():
@@ -108,9 +113,9 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
         action = result["action"].model_dump(mode="json")
         incidents[event.event_id] = {"incident": incident, "action": action}
         # Three typed frames the dashboard accumulates by event_id (contract with frontend).
-        await broadcaster.publish({"kind": "anomaly", "payload": event.model_dump(mode="json")})
-        await broadcaster.publish({"kind": "enriched", "payload": incident})
-        await broadcaster.publish({"kind": "containment", "payload": action})
+        await publish({"kind": "anomaly", "payload": event.model_dump(mode="json")})
+        await publish({"kind": "enriched", "payload": incident})
+        await publish({"kind": "containment", "payload": action})
         return {"event_id": event.event_id, "status": action["status"]}
 
     @app.get("/incidents")
@@ -134,7 +139,7 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
         if event_id in incidents:
             incidents[event_id]["action"] = action
         # The status change arrives back on /stream as a fresh containment frame.
-        await broadcaster.publish({"kind": "containment", "payload": action})
+        await publish({"kind": "containment", "payload": action})
         return action
 
     @app.get("/audit")
@@ -147,6 +152,10 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
         async def event_generator():
             queue = broadcaster.subscribe()
             try:
+                # Backlog: replay everything so far, so a late-connecting or refreshed
+                # client is immediately in sync instead of staring at an empty feed.
+                for message in list(messages):
+                    yield {"data": json.dumps(message)}
                 while True:
                     message = await queue.get()
                     yield {"data": json.dumps(message)}
@@ -157,6 +166,7 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
 
     app.state.broadcaster = broadcaster
     app.state.incidents = incidents
+    app.state.messages = messages
     return app
 
 
