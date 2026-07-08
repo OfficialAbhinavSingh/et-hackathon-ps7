@@ -13,3 +13,9 @@ data/intel/
 
 # Runtime state
 audit_log.jsonl
+
+# UNSW-NB15 dataset (too big to commit)
+data/unsw/
+
+# trained model binaries (regenerate: python -m engine.train)
+engine/model/*.joblib
