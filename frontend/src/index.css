@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+/* ── SENTINEL AI-SOC design tokens ──────────────────────────────────────────
+   Dark "control room at night". Color is information: the severity scale maps
+   to real incident severity, never used as decoration. Signal-blue = live/interactive. */
+@theme {
+  --color-base: #0a0e14;
+  --color-surface: #121826;
+  --color-surface-2: #1a2233;
+  --color-line: #232d40;
+  --color-line-soft: #1b2334;
+
+  --color-ink: #e6edf5;
+  --color-ink-dim: #8a97ab;
+  --color-ink-faint: #5a6678;
+
+  --color-signal: #4d9fff;
+  --color-signal-dim: #2b6fc2;
+
+  --color-sev-critical: #ff3b6b;
+  --color-sev-high: #ff8a3d;
+  --color-sev-medium: #f5c542;
+  --color-sev-low: #35d0a5;
+
+  --color-live: #35d0a5;
+  --color-warn: #f5c542;
+  --color-down: #ff3b6b;
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-panel: 14px;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(77, 159, 255, 0.06), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(53, 208, 165, 0.05), transparent 55%),
+      var(--color-base);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* machine data is always monospace, tabular figures */
+  .mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum";
+  }
+  ::selection {
+    background: rgba(77, 159, 255, 0.35);
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ── signature motion: incident arrival tracer + connection pulse + cell fire ── */
+@keyframes tracer-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tracer-in {
+  animation: tracer-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 var(--pulse, rgba(53, 208, 165, 0.6));
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.pulse-dot {
+  animation: pulse-ring 1.8s infinite;
+}
+
+@keyframes cell-fire {
+  0% {
+    box-shadow: inset 0 0 0 1px currentColor, 0 0 20px 1px currentColor;
+  }
+  100% {
+    box-shadow: inset 0 0 0 1px currentColor, 0 0 0 0 transparent;
+  }
+}
+.cell-fire {
+  animation: cell-fire 0.9s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracer-in,
+  .pulse-dot,
+  .cell-fire {
+    animation: none;
+  }
+}
+
+/* glass panels */
+.panel {
+  background: linear-gradient(180deg, rgba(26, 34, 51, 0.72), rgba(18, 24, 38, 0.72));
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+  backdrop-filter: blur(8px);
+}
