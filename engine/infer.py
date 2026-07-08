@@ -92,8 +92,11 @@ class Scorer:
             is_anom = bool(raw[i] > self.threshold)
             top_idx = np.argsort(-np.abs(z[i]))[:3]
             src, dst, port = self._topology(row, i, is_anom)
-            raw_features = {numf[j]: round(float(row[numf[j]]), 4) for j in top_idx}
-            raw_features["dst_port"] = port
+            # Carry the FULL numeric flow vector (not just the attributed top-3) so the
+            # attribution agent (#17) has real numbers to reason over — per the DEV-1 pitfall
+            # "keep raw_features; the agent needs real numbers, not just a score".
+            raw_features = {f: round(float(row[f]), 4) for f in numf}
+            raw_features["dst_port"] = port  # synthetic demo topology — NOT a captured value
             yield AnomalyEvent(
                 schema_version="1.0",
                 event_id=f"{id_prefix}_{i:04d}",
@@ -134,3 +137,12 @@ def load_scorer() -> Scorer:
             lo=cal["lo"], mid=cal["mid"], hi=cal["hi"],
         )
     return _SCORER
+
+
+def score(flow: Mapping, event_id: str = "evt_0001") -> AnomalyEvent:
+    """Module-level entry point matching the #15 DoD signature: score(flow) -> AnomalyEvent.
+
+    Thin shim over the cached Scorer so callers (e.g. the M2 orchestrator) can `import infer`
+    and call `infer.score(flow)` directly without touching the loader.
+    """
+    return load_scorer().score(flow, event_id)
