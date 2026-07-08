@@ -140,6 +140,16 @@ def main() -> None:
         "numeric_features": pre.numeric_features,
         "proto_top": pre.proto_top,
         "n_transformed_features": int(X_train.shape[1]),
+        # Calibration anchors for inference (#15): map the raw anomaly score to a 0-1
+        # confidence via a 2-segment linear curve so is_anomaly (raw > mid) lines up with
+        # score >= 0.7 (block_ip), and the most anomalous flows exceed 0.9 (isolate tier).
+        #   raw <= mid : [lo, mid]  -> [0.0, 0.7]      (normal band)
+        #   raw >  mid : [mid, hi]  -> [0.7, 1.0]      (anomaly band)
+        "calibration": {
+            "lo": float(np.percentile(train_scores, 1)),
+            "mid": float(chosen["threshold"]),
+            "hi": float(np.percentile(train_scores, 99.9)),
+        },
     }
     (MODEL_DIR / "model_meta.json").write_text(json.dumps(meta, indent=2))
 
