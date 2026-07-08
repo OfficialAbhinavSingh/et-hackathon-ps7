@@ -19,6 +19,7 @@ export const KILL_CHAIN: string[] = [
 
 /** base technique id (strip sub-technique) -> tactic */
 const TECHNIQUE_TACTIC: Record<string, string> = {
+  T1046: "Discovery",
   T1110: "Credential Access",
   T1210: "Lateral Movement",
   T1021: "Lateral Movement",
