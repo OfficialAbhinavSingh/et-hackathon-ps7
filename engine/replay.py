@@ -31,10 +31,12 @@ def post_event(url: str, event) -> int:
     req = urllib.request.Request(
         f"{url}/events", data=body, headers={"content-type": "application/json"}, method="POST"
     )
-    # 30s, not 5s: with ENRICH_MODE=live the orchestrator's POST /events blocks on a real
+    # 60s, not 5s: with ENRICH_MODE=live the orchestrator's POST /events blocks on a real
     # LLM tool-calling round trip (intel.agent.enrich), which can take several seconds —
-    # the stub path was instant, the live path isn't.
-    with urllib.request.urlopen(req, timeout=30) as r:
+    # longer still if a retry kicks in (malformed JSON, ungrounded citation, or a transient
+    # provider API error each cost another full round trip). The stub path was instant;
+    # the live path isn't, and 30s still timed out under a stacked retry in live testing.
+    with urllib.request.urlopen(req, timeout=60) as r:
         return r.status
 
 
