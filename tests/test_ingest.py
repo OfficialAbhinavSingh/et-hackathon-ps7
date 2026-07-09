@@ -21,14 +21,14 @@ def test_query_returns_relevant_chunk_for_a_sample_query(tmp_path):
     assert results[0]["source_type"] == "attack"
 
 
-def test_query_respects_n_results():
-    coll = build_collection(SAMPLE_RECORDS, persist_dir=None)
+def test_query_respects_n_results(tmp_path):
+    coll = build_collection(SAMPLE_RECORDS, persist_dir=str(tmp_path / "chroma"))
     results = query(coll, "remote access", n_results=2)
     assert len(results) == 2
 
 
-def test_metadata_carries_source_type_and_name():
-    coll = build_collection(SAMPLE_RECORDS, persist_dir=None)
+def test_metadata_carries_source_type_and_name(tmp_path):
+    coll = build_collection(SAMPLE_RECORDS, persist_dir=str(tmp_path / "chroma"))
     results = query(coll, "sql injection remote code execution", n_results=1)
     assert results[0]["source_type"] == "cve"
     assert results[0]["name"] == "CVE-2023-99999"
