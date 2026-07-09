@@ -57,6 +57,8 @@ export interface DataService {
   approve(id: string, confirmedTechnique?: AttackTechnique): Promise<void>;
 
   getAudit(): AuditEntry[];
+  /** Re-fetch/re-sync the audit log so a page mounted after events already happened isn't stuck empty. */
+  refreshAudit(): Promise<void>;
   verifyAuditChain(): Promise<VerifyResult>;
 
   getGraph(): AttackGraph;

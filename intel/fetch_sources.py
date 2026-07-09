@@ -35,6 +35,31 @@ CERTIN_SEED_ILLUSTRATIVE = [
 ]
 
 
+# STIX kill_chain_phases use kebab-case phase names; map to the Title Case tactic names the
+# frontend's kill-chain grid (frontend/src/lib/mitre.ts KILL_CHAIN) already uses. Phases with
+# no frontend column (reconnaissance, resource-development, defense-evasion) fall to "Other",
+# same as a technique with no recognized phase at all.
+PHASE_TO_TACTIC = {
+    "initial-access": "Initial Access",
+    "execution": "Execution",
+    "persistence": "Persistence",
+    "privilege-escalation": "Privilege Escalation",
+    "credential-access": "Credential Access",
+    "discovery": "Discovery",
+    "lateral-movement": "Lateral Movement",
+    "collection": "Collection",
+    "command-and-control": "Command & Control",
+    "exfiltration": "Exfiltration",
+    "impact": "Impact",
+}
+
+
+def _tactic_for(obj: dict) -> str:
+    phases = obj.get("kill_chain_phases", [])
+    phase_name = next((p["phase_name"] for p in phases if p.get("kill_chain_name") == "mitre-attack"), None)
+    return PHASE_TO_TACTIC.get(phase_name, "Other")
+
+
 def parse_attack_bundle(bundle: dict) -> list[dict]:
     """Extract technique (attack-pattern) objects with a MITRE ATT&CK ID."""
     records = []
@@ -53,8 +78,17 @@ def parse_attack_bundle(bundle: dict) -> list[dict]:
             "name": obj["name"],
             "description": obj.get("description", ""),
             "source_type": "attack",
+            "tactic": _tactic_for(obj),
         })
     return records
+
+
+def write_tactic_map(records: list[dict], path) -> None:
+    """Write {technique_id: tactic} for attack records — consumed by the frontend's MITRE grid
+    (frontend/src/lib/mitre.ts) so it covers every real ATT&CK technique the live agent can
+    cite, not a hand-maintained whitelist."""
+    mapping = {r["id"]: r["tactic"] for r in records if r["source_type"] == "attack"}
+    Path(path).write_text(json.dumps(mapping, indent=2, sort_keys=True))
 
 
 def parse_cve_response(payload: dict) -> list[dict]:
@@ -147,6 +181,9 @@ def main() -> None:
     all_records = attack + cves + certin
     write_slice(all_records, n=15, path=FIXTURES_DIR / "intel_slice.json")
     print(f"committed slice: 15 records -> {FIXTURES_DIR / 'intel_slice.json'}")
+
+    write_tactic_map(attack, FIXTURES_DIR / "mitre_tactics.json")
+    print(f"tactic map: {len(attack)} techniques -> {FIXTURES_DIR / 'mitre_tactics.json'}")
 
 
 if __name__ == "__main__":

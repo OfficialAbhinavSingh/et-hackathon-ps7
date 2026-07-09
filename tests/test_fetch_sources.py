@@ -10,6 +10,7 @@ from intel.fetch_sources import (
     parse_attack_bundle,
     parse_cve_response,
     write_slice,
+    write_tactic_map,
 )
 
 SAMPLE_STIX = {
@@ -19,6 +20,13 @@ SAMPLE_STIX = {
             "name": "Exfiltration Over C2 Channel",
             "description": "Adversaries may steal data by exfiltrating it over an existing C2 channel.",
             "external_references": [{"source_name": "mitre-attack", "external_id": "T1041"}],
+            "kill_chain_phases": [{"kill_chain_name": "mitre-attack", "phase_name": "exfiltration"}],
+        },
+        {
+            "type": "attack-pattern",
+            "name": "No Kill Chain Phase",
+            "description": "A technique missing kill_chain_phases entirely.",
+            "external_references": [{"source_name": "mitre-attack", "external_id": "T9999"}],
         },
         {
             "type": "malware",  # not an attack-pattern — must be skipped
@@ -43,13 +51,28 @@ SAMPLE_NVD = {
 
 def test_parse_attack_bundle_extracts_only_techniques_with_mitre_id():
     records = parse_attack_bundle(SAMPLE_STIX)
-    assert len(records) == 1
+    assert len(records) == 2
     assert records[0] == {
         "id": "T1041",
         "name": "Exfiltration Over C2 Channel",
         "description": "Adversaries may steal data by exfiltrating it over an existing C2 channel.",
         "source_type": "attack",
+        "tactic": "Exfiltration",
     }
+
+
+def test_parse_attack_bundle_falls_back_to_other_when_no_kill_chain_phase():
+    records = parse_attack_bundle(SAMPLE_STIX)
+    assert records[1]["id"] == "T9999"
+    assert records[1]["tactic"] == "Other"
+
+
+def test_write_tactic_map_writes_id_to_tactic_json(tmp_path):
+    records = parse_attack_bundle(SAMPLE_STIX)
+    path = tmp_path / "mitre_tactics.json"
+    write_tactic_map(records, path)
+    written = json.loads(path.read_text())
+    assert written == {"T1041": "Exfiltration", "T9999": "Other"}
 
 
 def test_parse_cve_response_extracts_english_description():
