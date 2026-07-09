@@ -71,11 +71,42 @@ test: $(VENV) ## Run the backend test suite
 test-frontend: frontend/node_modules ## Run the frontend unit tests
 	cd frontend && npx vitest run
 
+# ---- detection engine (#14/#15) --------------------------------------------
+# Isolated py3.12 venv: scikit-learn has no wheels for the system's py3.14, and the ML stack
+# is kept out of the FastAPI runtime. Needs python3.12 on PATH + the UNSW-NB15 CSVs in
+# data/unsw/ (gitignored — see engine/README.md).
+
+ENGINE_VENV := .venv-engine
+ENGINE_PY   := $(ENGINE_VENV)/bin/python
+
+$(ENGINE_VENV):
+	@command -v python3.12 >/dev/null || { echo "need python3.12 on PATH — see engine/README.md"; exit 1; }
+	python3.12 -m venv $(ENGINE_VENV)
+	$(ENGINE_VENV)/bin/pip install -q --upgrade pip
+	$(ENGINE_VENV)/bin/pip install -q scikit-learn pandas numpy joblib "pydantic>=2" pytest
+	@touch $(ENGINE_VENV)
+
+.PHONY: engine-setup
+engine-setup: $(ENGINE_VENV) ## Set up the detection-engine venv (py3.12 + ML deps)
+
+.PHONY: train
+train: $(ENGINE_VENV) ## Validate dataset + train the Isolation Forest (see engine/README.md)
+	$(ENGINE_PY) -m engine.fetch_unsw
+	$(ENGINE_PY) -m engine.train
+
+.PHONY: replay-engine
+replay-engine: $(ENGINE_VENV) ## Stream REAL model-scored events into a running backend
+	$(ENGINE_PY) -m engine.replay
+
+.PHONY: test-engine
+test-engine: $(ENGINE_VENV) ## Run the engine tests (skips if the model isn't trained)
+	$(ENGINE_PY) -m pytest tests/test_engine_infer.py -q
+
 # ---- housekeeping -----------------------------------------------------------
 
 .PHONY: clean
-clean: ## Remove venv, node_modules, caches, runtime audit log
-	rm -rf $(VENV) frontend/node_modules .pytest_cache audit_log.jsonl
+clean: ## Remove venvs, node_modules, caches, runtime audit log
+	rm -rf $(VENV) $(ENGINE_VENV) frontend/node_modules .pytest_cache audit_log.jsonl
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
 
 .PHONY: help

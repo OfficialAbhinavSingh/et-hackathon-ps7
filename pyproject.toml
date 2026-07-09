@@ -16,9 +16,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "httpx"]
-# Detection engine (issue #14/#15) — ML stack, isolated from the FastAPI runtime.
-# Install into a py3.12 venv:  uv pip install --python .venv scikit-learn pandas numpy joblib
-engine = ["scikit-learn", "pandas", "numpy", "joblib"]
+# Detection engine (issue #14/#15) — ML stack, isolated in its own py3.12 venv
+# (scikit-learn has no wheels for the system's py3.14). See engine/README.md / `make engine-setup`.
+# pydantic is here because replay emits the AnomalyEvent contract from orchestrator/schemas.py.
+engine = ["scikit-learn", "pandas", "numpy", "joblib", "pydantic>=2"]
 
 [tool.setuptools]
 packages = ["orchestrator"]

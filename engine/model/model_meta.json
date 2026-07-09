@@ -55,5 +55,10 @@
     "icmp",
     "rtp"
   ],
-  "n_transformed_features": 64
+  "n_transformed_features": 64,
+  "calibration": {
+    "lo": 0.34840927425820617,
+    "mid": 0.44558246442100236,
+    "hi": 0.6268129284770454
+  }
 }
