@@ -15,6 +15,12 @@ data/intel/
 # Runtime state
 audit_log.jsonl
 
+# Local secrets — never commit
+.env
+
+# Playwright MCP verification artifacts (screenshots/snapshots, not deliverables)
+.playwright-mcp/
+
 # UNSW-NB15 dataset (too big to commit)
 data/unsw/
 

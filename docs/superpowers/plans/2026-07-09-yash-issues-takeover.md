@@ -1014,10 +1014,26 @@ git commit -m "feat(orchestrator): wire live intel.agent.enrich behind ENRICH_MO
 
 ---
 
-### Task 6: Labelled eval set + attribution accuracy %
+### Task 6: Expand backend fixtures 3→20 (#24) + labelled eval set + attribution accuracy % (#17)
+
+**Scope change 2026-07-09 (Yash reopened via new issue #24 while this plan was mid-execution):**
+`data/fixtures/anomaly_events.json` and `enriched_incidents.json` only have 3 entries each — the
+real 20-entry set existed once (branch `feat/3-4-schemas-and-fixtures`) and was lost in a later
+history reset (see `frontend/src/data/fixtures.ts`'s own comment: *"AUTO-GENERATED from python
+data/fixtures/... byte-match the backend JSON"* — that source is what's now missing). This is a
+mechanical extraction, not a reconstruction: `frontend/src/data/fixtures.ts`'s `ANOMALY_FIXTURES`
+/ `ENRICHED_FIXTURES` arrays are already the exact, real backend JSON, just embedded in a `.ts`
+file. #24's DoD ("20 contract-valid events + 20 enriched incidents, each with
+ground_truth_technique, aligned with the frontend's set") and this task's original scope
+(labelled eval set for #17) are now one task: extract the 20 real pairs, expand the committed
+backend fixtures to match, and derive the labelled eval set from them (ground_truth_technique =
+each incident's own already-assigned `attack_technique.id` — these were authored as ground-truth
+demo scenarios in the first place, not guesses).
 
 **Files:**
-- Create: `data/fixtures/labelled_eval.json` — reuse the 20 scenarios already authored in `frontend/src/data/fixtures.ts` (6 distinct technique IDs already present: T1005, T1048, T1071, T1105, T1210, T1571), converted to `{event: AnomalyEvent-shaped dict, ground_truth_technique: "T####"}` pairs
+- Modify: `data/fixtures/anomaly_events.json` — expand from 3 to the 20 real entries in `frontend/src/data/fixtures.ts::ANOMALY_FIXTURES`
+- Modify: `data/fixtures/enriched_incidents.json` — expand from 3 to the 20 real entries in `frontend/src/data/fixtures.ts::ENRICHED_FIXTURES`
+- Create: `data/fixtures/labelled_eval.json` — `{event: AnomalyEvent-shaped dict, ground_truth_technique: "T####"}` pairs, one per expanded event, `ground_truth_technique` = that event's paired enriched incident's `attack_technique.id` (6 distinct technique IDs across the 20: T1005, T1048, T1071, T1105, T1210, T1571 — do not invent any technique not already present in `fixtures.ts`)
 - Create: `intel/eval_attribution.py`
 - Test: `tests/test_eval_attribution.py`
 
@@ -1025,20 +1041,22 @@ git commit -m "feat(orchestrator): wire live intel.agent.enrich behind ENRICH_MO
 - Consumes: `intel.agent.enrich` (Task 4)
 - Produces: `compute_accuracy(labelled: list[dict], enrich_fn) -> float` — fraction where `enrich_fn(event).attack_technique.id == ground_truth_technique`
 
-- [ ] **Step 1: Extract the 20 scenarios into the labelled fixture**
+- [ ] **Step 1: Extract the 20 real scenarios and expand the backend fixtures**
 
-```bash
-# Read frontend/src/data/fixtures.ts, pull out each incident's event fields + the
-# attack_technique.id already assigned there, and write:
-```
+Read `frontend/src/data/fixtures.ts` in full. It contains two TypeScript arrays,
+`ANOMALY_FIXTURES: AnomalyEvent[]` and `ENRICHED_FIXTURES: EnrichedIncident[]`, each already
+valid JSON object literals (just wrapped in `export const ... = [ ... ];` TS syntax) — 20 entries
+each, `event_id`s `evt_0001`..`evt_0020` pairing 1:1 across both arrays. Extract each array's
+JSON content verbatim (strip only the TS wrapper, do not alter field values) and:
+- Overwrite `data/fixtures/anomaly_events.json` with the 20-entry `ANOMALY_FIXTURES` array.
+- Overwrite `data/fixtures/enriched_incidents.json` with the 20-entry `ENRICHED_FIXTURES` array.
+- Build `data/fixtures/labelled_eval.json` by zipping the two on `event_id`:
 ```json
-// data/fixtures/labelled_eval.json — shape (repeat for all ~20; DO NOT invent techniques
-// not already present in fixtures.ts — copy the real ones across)
 [
   {
     "event": {
-      "schema_version": "1.0", "event_id": "evt_0001", "timestamp": "2026-07-10T12:00:00Z",
-      "src_ip": "10.0.0.5", "dst_ip": "203.0.113.9", "anomaly_score": 0.95, "is_anomaly": true,
+      "schema_version": "1.0", "event_id": "evt_0001", "timestamp": "2026-07-10T12:07:00Z",
+      "src_ip": "10.0.0.5", "dst_ip": "203.0.113.10", "anomaly_score": 0.93, "is_anomaly": true,
       "top_features": ["flow_duration", "bytes_out", "dst_port"],
       "raw_features": {"flow_duration": 12000, "bytes_out": 4500000, "dst_port": 4444}
     },
@@ -1046,6 +1064,15 @@ git commit -m "feat(orchestrator): wire live intel.agent.enrich behind ENRICH_MO
   }
 ]
 ```
+(The example above uses `evt_0001`'s real values from `fixtures.ts` — use the real value for
+every field, for all 20 entries; the exact numbers must come from the file, not be invented.)
+
+Sanity-check before moving on: `orchestrator/main.py::_load_fixture_incidents` reads
+`enriched_incidents.json` at startup — after overwriting it, run the existing backend test suite
+(`pytest -q`) once to confirm nothing that depends on the old 3-entry fixture set broke (check
+`tests/test_main.py` for any test asserting an exact count or specific fixture content from the
+old 3-entry file — if one exists, update it to match the new 20-entry reality, it was testing
+stale content, not real behavior).
 
 - [ ] **Step 2: Write the failing test**
 
@@ -1143,8 +1170,10 @@ Expected: `1 passed`.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add data/fixtures/labelled_eval.json intel/eval_attribution.py tests/test_eval_attribution.py
-git commit -m "feat(intel): labelled eval set + attribution accuracy % (#17, GAP3)"
+git add data/fixtures/anomaly_events.json data/fixtures/enriched_incidents.json \
+        data/fixtures/labelled_eval.json intel/eval_attribution.py tests/test_eval_attribution.py \
+        tests/test_main.py  # only if Step 1's sanity check required an update there
+git commit -m "feat: expand backend fixtures 3->20 (#24); labelled eval set + attribution accuracy % (#17, GAP3)"
 ```
 
 ---
@@ -1203,7 +1232,21 @@ Not code — no TDD ceremony. Track directly on the issue, don't wait for Tasks 
 - [ ] Impact model: MTTD/MTTR reduction vs. baseline SOC, CERT-In 1.59M incidents/yr + 70% EOL-infra stat (finalplan §6)
 - [ ] Demo video recorded off the real live stack (Task 7), not the mock path
 - [ ] Rehearse the demo twice; confirm the mock fallback (`VITE_DATA_SOURCE=mock`) still works standalone as the stage-safety path (finalplan §10 — "mock path still runnable as fallback")
-- [ ] Yash's original slice of #20 (pitch script, architecture diagram co-owner) — check in with him if/when connectivity returns; don't block on it meanwhile
+- [ ] Yash's original slice of #20 (pitch script, architecture diagram co-owner) — **update 2026-07-09: Yash is back online** (created #24/#25, commented on PR#23) — coordinate directly rather than assuming he's unreachable
+
+---
+
+### Task 9: #25 — Multi-agent orchestration wrapper (added 2026-07-09, opened by Yash while this plan was mid-execution)
+
+finalplan.md Phase 4/GAP1: *"Multi-agent framing real (orchestration wrapper), not slideware."*
+Detection (`engine/`), Attribution (`intel/`), and Response (`orchestrator/`) are three separate
+modules with no coordinating layer presenting them as agents handing off to each other. DoD per
+#25: a thin wrapper making the hand-off real, not just a pitch-deck diagram.
+
+Deferred to after Task 7 (needs Tasks 4-5's real `intel.agent.enrich` wired in to have a real
+third agent to coordinate — building this before Task 5 lands would have nothing real to wrap).
+Brief to be written when reached — not detailed here yet since its shape depends on what Task 7's
+live run reveals about the actual seams between engine/intel/orchestrator.
 
 ---
 
