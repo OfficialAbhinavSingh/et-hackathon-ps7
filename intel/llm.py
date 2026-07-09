@@ -86,7 +86,7 @@ def _raw_call_claude(system_prompt: str, messages: list[dict], tools: list[ToolS
     client = anthropic.Anthropic()
     resp = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1024,
+        max_tokens=4096,
         system=system_prompt,
         tools=[{"name": t.name, "description": t.description, "input_schema": t.parameters} for t in tools],
         messages=messages,
