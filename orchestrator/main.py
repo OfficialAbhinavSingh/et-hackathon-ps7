@@ -80,6 +80,26 @@ def _make_stub_enrich(fixtures: dict):
     return enrich
 
 
+def _make_live_enrich():
+    """Live-mode enrichment: routes through the real cited-attribution agent (Task 4).
+
+    Opt-in only, via ENRICH_MODE=live — see create_app(). Never used by default so the
+    demo keeps working even when the LLM/Chroma dependencies aren't available.
+    """
+    import os
+
+    from intel.agent import enrich as agent_enrich
+    from intel.ingest import build_collection
+
+    persist_dir = os.environ.get("INTEL_CHROMA_DIR", "data/intel/chroma")
+    collection = build_collection([], persist_dir=persist_dir)  # empty list = don't re-seed, just open
+
+    def enrich(event: AnomalyEvent) -> EnrichedIncident:
+        return agent_enrich(event, collection)
+
+    return enrich
+
+
 def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_FIXTURES):
     app = FastAPI(title="PS7 SOAR Orchestrator")
     app.add_middleware(
@@ -92,7 +112,12 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
     audit = AuditLog(audit_path)
     playbooks = PlaybookEngine()
     if enrich is None:
-        enrich = _make_stub_enrich(_load_fixture_incidents(fixtures_path))
+        import os
+
+        if os.environ.get("ENRICH_MODE") == "live":
+            enrich = _make_live_enrich()
+        else:
+            enrich = _make_stub_enrich(_load_fixture_incidents(fixtures_path))
     pipeline = Pipeline(enrich=enrich, audit=audit, playbooks=playbooks)
     broadcaster = Broadcaster()
     incidents: dict[str, dict] = {}
