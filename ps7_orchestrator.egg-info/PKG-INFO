@@ -10,3 +10,12 @@ Requires-Dist: pydantic>=2
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: httpx; extra == "dev"
+Provides-Extra: engine
+Requires-Dist: scikit-learn; extra == "engine"
+Requires-Dist: pandas; extra == "engine"
+Requires-Dist: numpy; extra == "engine"
+Requires-Dist: joblib; extra == "engine"
+Requires-Dist: pydantic>=2; extra == "engine"
+Provides-Extra: intel
+Requires-Dist: chromadb; extra == "intel"
+Requires-Dist: requests; extra == "intel"
