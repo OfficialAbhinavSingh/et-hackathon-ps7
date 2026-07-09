@@ -1,7 +1,16 @@
 import json
 from pathlib import Path
 
-from intel.fetch_sources import parse_attack_bundle, parse_cve_response, write_slice
+import pytest
+import requests
+
+from intel.fetch_sources import (
+    CERTIN_SEED_ILLUSTRATIVE,
+    fetch_certin,
+    parse_attack_bundle,
+    parse_cve_response,
+    write_slice,
+)
 
 SAMPLE_STIX = {
     "objects": [
@@ -62,3 +71,37 @@ def test_write_slice_is_deterministic_and_capped(tmp_path):
     saved = json.loads(out.read_text())
     assert len(saved) == 5
     assert saved == records[:5]
+
+
+def test_fetch_certin_without_url_returns_seed_without_raising():
+    assert fetch_certin(url=None) == CERTIN_SEED_ILLUSTRATIVE
+
+
+def test_fetch_certin_with_url_raises_notimplementederror_when_response_ok(monkeypatch):
+    """A URL was explicitly passed and the request succeeded, but no parser exists for the
+    response shape — this must fail loudly (NotImplementedError), not be silently swallowed
+    into the illustrative seed."""
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+    def fake_get(url, timeout=30):
+        return FakeResponse()
+
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    with pytest.raises(NotImplementedError):
+        fetch_certin(url="http://example.com/fake")
+
+
+def test_fetch_certin_with_url_falls_back_on_network_error(monkeypatch):
+    """A network-layer failure (timeout, connection error, HTTP error) while fetching a
+    real --certin-url should fall back to the seed rather than raising."""
+
+    def fake_get(url, timeout=30):
+        raise requests.exceptions.ConnectionError("boom")
+
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    assert fetch_certin(url="http://example.com/fake") == CERTIN_SEED_ILLUSTRATIVE

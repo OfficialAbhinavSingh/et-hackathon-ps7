@@ -100,19 +100,22 @@ def fetch_certin(url: str | None = None) -> list[dict]:
     if not url:
         print("no --certin-url given — using illustrative seed, NOT real CERT-In data")
         return CERTIN_SEED_ILLUSTRATIVE
+
     try:
         resp = requests.get(url, timeout=30)
         resp.raise_for_status()
-        # NOTE: parsing depends entirely on the actual page/feed shape at `url` — inspect it
-        # and adapt this before relying on it. Left unimplemented on purpose: guessing the
-        # shape here would be worse than failing loudly.
-        raise NotImplementedError(
-            "fetch_certin: got a response from --certin-url but no parser is written yet — "
-            "inspect the response shape and implement parse_certin_response() for it."
-        )
-    except Exception as exc:
+    except requests.exceptions.RequestException as exc:
         print(f"CERT-In fetch failed ({exc}); falling back to illustrative seed")
         return CERTIN_SEED_ILLUSTRATIVE
+
+    # NOTE: parsing depends entirely on the actual page/feed shape at `url` — inspect it
+    # and adapt this before relying on it. Left unimplemented on purpose: guessing the
+    # shape here would be worse than failing loudly. This must NOT be swallowed — a URL
+    # was explicitly passed, so silently falling back to the seed here would hide the gap.
+    raise NotImplementedError(
+        "fetch_certin: got a response from --certin-url but no parser is written yet — "
+        "inspect the response shape and implement parse_certin_response() for it."
+    )
 
 
 def write_slice(records: list[dict], n: int, path: Path) -> None:
