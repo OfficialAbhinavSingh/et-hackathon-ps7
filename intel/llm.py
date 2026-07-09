@@ -13,6 +13,12 @@ from dataclasses import dataclass
 from typing import Callable
 
 
+class LLMCallError(Exception):
+    """Raised when the underlying provider API call itself fails (network, rate limit,
+    malformed generation the provider rejects, etc.) — distinct from a successful call
+    that returns bad JSON, which is agent.py's problem to retry on."""
+
+
 @dataclass(frozen=True)
 class ToolSpec:
     name: str
@@ -83,32 +89,39 @@ def _raw_call_claude(system_prompt: str, messages: list[dict], tools: list[ToolS
     """Real Anthropic call — isolated here so tests can monkeypatch it without a key."""
     import anthropic
 
-    client = anthropic.Anthropic()
-    resp = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        system=system_prompt,
-        tools=[{"name": t.name, "description": t.description, "input_schema": t.parameters} for t in tools],
-        messages=messages,
-    )
-    tool_calls = [{"id": b.id, "name": b.name, "input": b.input}
-                  for b in resp.content if b.type == "tool_use"]
-    text = "".join(b.text for b in resp.content if b.type == "text") or None
-    return {"tool_calls": tool_calls, "text": text}
+    try:
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4096,
+            system=system_prompt,
+            tools=[{"name": t.name, "description": t.description, "input_schema": t.parameters} for t in tools],
+            messages=messages,
+        )
+        tool_calls = [{"id": b.id, "name": b.name, "input": b.input}
+                      for b in resp.content if b.type == "tool_use"]
+        text = "".join(b.text for b in resp.content if b.type == "text") or None
+        return {"tool_calls": tool_calls, "text": text}
+    except anthropic.APIError as exc:
+        raise LLMCallError(str(exc)) from exc
 
 
 def _raw_call_groq(system_prompt: str, messages: list[dict], tools: list[ToolSpec]) -> dict:
     """Real Groq call — isolated here so tests can monkeypatch it without a key."""
+    import groq
     from groq import Groq
 
-    client = Groq()
-    resp = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "system", "content": system_prompt}, *messages],
-        tools=[{"type": "function", "function": {
-            "name": t.name, "description": t.description, "parameters": t.parameters}} for t in tools],
-    )
-    msg = resp.choices[0].message
-    tool_calls = [{"id": c.id, "name": c.function.name, "input": json.loads(c.function.arguments)}
-                  for c in (msg.tool_calls or [])]
-    return {"tool_calls": tool_calls, "text": msg.content}
+    try:
+        client = Groq()
+        resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "system", "content": system_prompt}, *messages],
+            tools=[{"type": "function", "function": {
+                "name": t.name, "description": t.description, "parameters": t.parameters}} for t in tools],
+        )
+        msg = resp.choices[0].message
+        tool_calls = [{"id": c.id, "name": c.function.name, "input": json.loads(c.function.arguments)}
+                      for c in (msg.tool_calls or [])]
+        return {"tool_calls": tool_calls, "text": msg.content}
+    except groq.APIError as exc:
+        raise LLMCallError(str(exc)) from exc

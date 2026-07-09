@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 
 from intel.ingest import query
-from intel.llm import ToolSpec, run_agentic_tool_loop
+from intel.llm import LLMCallError, ToolSpec, run_agentic_tool_loop
 from orchestrator.schemas import (
     ActionType,
     AttackTechnique,
@@ -89,8 +89,26 @@ def enrich(event: AnomalyEvent, collection) -> EnrichedIncident:
 
     last_error = ""
     grounding_failure = False
+    llm_call_failure = False
     for _ in range(MAX_JSON_RETRIES):
-        raw = run_agentic_tool_loop(SYSTEM_PROMPT, user_prompt, TOOLS, executor)
+        try:
+            raw = run_agentic_tool_loop(SYSTEM_PROMPT, user_prompt, TOOLS, executor)
+        except LLMCallError as exc:
+            # Distinct failure mode from malformed JSON: the provider call itself failed
+            # (e.g. Groq's llama-3.3-70b-versatile emitting a non-standard <function=...>
+            # tag that the API rejects server-side with a 400). Treat it like malformed
+            # JSON for retry/fallback purposes rather than letting it crash the pipeline.
+            grounding_failure = False
+            llm_call_failure = True
+            last_error = f"LLM provider call failed: {exc}"
+            user_prompt += (
+                "\n\nYour previous attempt failed at the provider API level (e.g. a malformed "
+                "tool-call generation was rejected before any response was produced) — this is "
+                "not a JSON formatting issue on your end. Try again, responding with ONLY the "
+                "JSON object described above and using well-formed tool calls."
+            )
+            continue
+        llm_call_failure = False
         try:
             data = json.loads(raw)
             technique_id = data["attack_technique"]["id"]
@@ -132,4 +150,7 @@ def enrich(event: AnomalyEvent, collection) -> EnrichedIncident:
 
     if grounding_failure:
         return _fallback(event, f"ungrounded citation after {MAX_JSON_RETRIES} attempts ({last_error})")
+    if llm_call_failure:
+        return _fallback(event, f"LLM provider call failed on every attempt "
+                                 f"({MAX_JSON_RETRIES} attempts, {last_error})")
     return _fallback(event, f"malformed JSON after {MAX_JSON_RETRIES} attempts ({last_error})")

@@ -1,6 +1,8 @@
+import anthropic
+import groq
 import pytest
 
-from intel.llm import ToolSpec, run_agentic_tool_loop, _provider
+from intel.llm import LLMCallError, ToolSpec, run_agentic_tool_loop, _provider
 import intel.llm as llm
 
 
@@ -63,3 +65,52 @@ def test_loop_stops_at_max_turns_and_returns_last_text(monkeypatch):
     monkeypatch.setattr(llm, "_raw_call_claude", always_calls_tool)
     result = run_agentic_tool_loop("sys", "user prompt", [ECHO_TOOL], lambda n, a: "r", max_turns=2)
     assert result == ""  # no final text turn was ever produced
+
+
+def test_raw_call_claude_translates_anthropic_api_error_to_llm_call_error(monkeypatch):
+    """Live bug (Groq's mirror-image): the provider SDK can reject a call server-side
+    (bad request, rate limit, malformed generation) — this must become LLMCallError,
+    not an uncaught provider exception, so agent.py can retry/fallback instead of crashing."""
+    import httpx
+
+    class FakeMessages:
+        def create(self, **kwargs):
+            raise anthropic.APIError(
+                "boom", httpx.Request("POST", "https://api.anthropic.com/v1/messages"), body=None
+            )
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            self.messages = FakeMessages()
+
+    monkeypatch.setattr(anthropic, "Anthropic", FakeClient)
+
+    with pytest.raises(LLMCallError):
+        llm._raw_call_claude("sys", [{"role": "user", "content": "hi"}], [ECHO_TOOL])
+
+
+def test_raw_call_groq_translates_groq_api_error_to_llm_call_error(monkeypatch):
+    """The real live bug: Groq's llama-3.3-70b-versatile occasionally emits a non-standard
+    <function=...> pseudo tool-call tag; Groq's API validates this server-side and raises
+    groq.BadRequestError (a groq.APIError) with code 'tool_use_failed'. Must become
+    LLMCallError so agent.py's retry loop can catch it instead of the process crashing."""
+    import groq as groq_module
+
+    class FakeCompletions:
+        def create(self, **kwargs):
+            raise groq_module.APIError(
+                "Failed to call a function", request=None, body=None
+            )
+
+    class FakeChat:
+        def __init__(self):
+            self.completions = FakeCompletions()
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(groq_module, "Groq", FakeClient)
+
+    with pytest.raises(LLMCallError):
+        llm._raw_call_groq("sys", [{"role": "user", "content": "hi"}], [ECHO_TOOL])

@@ -4,6 +4,7 @@ import pytest
 
 from intel.agent import enrich, MAX_JSON_RETRIES
 import intel.agent as agent_mod
+from intel.llm import LLMCallError
 from orchestrator.schemas import AnomalyEvent
 
 EVENT = AnomalyEvent(
@@ -183,6 +184,40 @@ def test_enrich_retries_on_json_array_instead_of_object(monkeypatch):
 def test_enrich_falls_back_on_json_array_exhaustion_without_raising(monkeypatch):
     monkeypatch.setattr(agent_mod, "run_agentic_tool_loop",
                          lambda *a, **k: json.dumps(["not", "a", "dict"]))
+    result = enrich(EVENT, FakeCollection())
+    assert result.confidence == 0.0
+    assert result.attack_technique.id == "UNKNOWN"
+
+
+def test_enrich_retries_on_llm_call_error_then_succeeds(monkeypatch):
+    """The live bug: Groq's llama-3.3-70b-versatile occasionally emits a malformed
+    <function=...> tag that Groq's API rejects server-side, raising groq.APIError. llm.py
+    translates that into LLMCallError. enrich() must retry (not crash the pipeline/demo)."""
+    calls = {"n": 0}
+
+    def fake_loop(system_prompt, user_prompt, tools, executor, *a, **k):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise LLMCallError("groq tool_use_failed: malformed <function=...> tag")
+        executor("search_attack", {"query": "exfil"})
+        executor("lookup_cve", {"query": "exfil"})
+        return VALID_JSON
+
+    monkeypatch.setattr(agent_mod, "run_agentic_tool_loop", fake_loop)
+    monkeypatch.setattr(agent_mod, "query", _grounding_query)
+    result = enrich(EVENT, FakeCollection())
+    assert calls["n"] == 2
+    assert result.attack_technique.id == "T1048"
+
+
+def test_enrich_falls_back_when_llm_call_error_exhausts_all_retries(monkeypatch):
+    """If the provider keeps failing every attempt, enrich() must still safely reach the
+    low-confidence fallback rather than letting LLMCallError propagate up to the orchestrator
+    and crash the request with an HTTP 500."""
+    def always_raises(*a, **k):
+        raise LLMCallError("groq tool_use_failed: malformed <function=...> tag")
+
+    monkeypatch.setattr(agent_mod, "run_agentic_tool_loop", always_raises)
     result = enrich(EVENT, FakeCollection())
     assert result.confidence == 0.0
     assert result.attack_technique.id == "UNKNOWN"
