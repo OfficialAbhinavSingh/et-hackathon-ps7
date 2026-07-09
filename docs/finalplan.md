@@ -327,3 +327,23 @@ skipped.
 - Subscribe to `GET /stream` via `EventSource`; **build the live feed first** (it proves the pipe).
 - shadcn/Tailwind so time goes to the story, not CSS. MITRE map = a technique grid; add the
   attack-path **graph** view (🎯 GAP2). Don't over-build UI before the pipe works.
+
+## 11. LLM provider fallback for the attribution agent (#17 addendum)
+
+Added 2026-07-09: no Anthropic API key is available yet, so `agent.py` must not hard-fail
+without one.
+
+- **`intel/llm.py`** is a thin seam: `call_with_tools(messages, tools) -> dict`. At import
+  time it picks a backend — Claude (`claude-sonnet-4-6`) if `ANTHROPIC_API_KEY` is set,
+  else Groq (`llama-3.3-70b-versatile`) if `GROQ_API_KEY` is set, else raises a clear
+  startup error naming both env vars. `agent.py` only ever calls `call_with_tools` — it does
+  not know which provider is live.
+- Tool schemas (`search_attack`, `lookup_cve`, `search_certin`) are defined **once** as plain
+  JSON schema in `agent.py` and translated to each provider's tool-call wire format inside
+  `llm.py` (Anthropic vs Groq's OpenAI-compatible format — same shape, different field names).
+- No new framework dependency (rejected LiteLLM — this repo calls SDKs directly everywhere
+  else; one more custom seam is cheaper than a new dependency mid-hackathon). Add the `groq`
+  SDK alongside `anthropic` in `pyproject.toml`'s `intel` extra.
+- **Retrieve-then-cite and force+validate+retry JSON (§10) apply identically regardless of
+  backend** — that logic stays in `agent.py`, not `llm.py`.
+- Swap to the real key at any time with zero code change — just set `ANTHROPIC_API_KEY`.
