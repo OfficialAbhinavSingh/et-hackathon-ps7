@@ -20,7 +20,7 @@ dev = ["pytest", "httpx"]
 # (scikit-learn has no wheels for the system's py3.14). See engine/README.md / `make engine-setup`.
 # pydantic is here because replay emits the AnomalyEvent contract from orchestrator/schemas.py.
 engine = ["scikit-learn", "pandas", "numpy", "joblib", "pydantic>=2"]
-intel = ["chromadb", "requests"]
+intel = ["chromadb", "requests", "anthropic", "groq"]
 
 [tool.setuptools]
 packages = ["orchestrator", "intel"]
