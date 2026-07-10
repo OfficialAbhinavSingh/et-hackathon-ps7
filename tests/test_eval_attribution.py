@@ -25,3 +25,8 @@ def test_compute_accuracy_counts_exact_technique_matches():
     responses = {"e1": _incident("e1", "T1048"), "e2": _incident("e2", "T9999")}
     acc = compute_accuracy(LABELLED, lambda event: responses[event.event_id])
     assert acc == 0.5
+
+
+def test_compute_accuracy_returns_zero_for_empty_labelled_set():
+    # guards the `if not labelled: return 0.0` branch — a division-by-zero otherwise
+    assert compute_accuracy([], lambda event: _incident("x", "T1048")) == 0.0

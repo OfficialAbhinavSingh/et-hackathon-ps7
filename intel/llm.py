@@ -50,6 +50,19 @@ def run_agentic_tool_loop(
     return loop(system_prompt, user_prompt, tools, tool_executor, max_turns)
 
 
+def _run_tool(tool_executor: Callable[[str, dict], str], name: str, args: dict) -> str:
+    """Invoke the executor, converting ANY failure into LLMCallError. The weaker Groq model
+    routinely emits tool calls that don't match the tool schema (missing/renamed args, a
+    hallucinated tool name), which makes the executor raise KeyError etc. mid-loop. Left
+    unguarded that escapes as a raw exception and 500s POST /events; as LLMCallError it rides
+    agent.py's existing retry-then-fallback path (same graceful handling as a provider error).
+    The original message is preserved so the fallback narrative/audit stays diagnosable."""
+    try:
+        return tool_executor(name, args)
+    except Exception as exc:
+        raise LLMCallError(f"tool executor failed for {name}({args}): {exc!r}") from exc
+
+
 def _loop_claude(system_prompt, user_prompt, tools, tool_executor, max_turns) -> str:
     messages = [{"role": "user", "content": user_prompt}]
     for _ in range(max_turns):
@@ -62,7 +75,7 @@ def _loop_claude(system_prompt, user_prompt, tools, tool_executor, max_turns) ->
         ]})
         messages.append({"role": "user", "content": [
             {"type": "tool_result", "tool_use_id": c["id"],
-             "content": tool_executor(c["name"], c["input"])}
+             "content": _run_tool(tool_executor, c["name"], c["input"])}
             for c in resp["tool_calls"]
         ]})
     return ""
@@ -81,7 +94,7 @@ def _loop_groq(system_prompt, user_prompt, tools, tool_executor, max_turns) -> s
         ]})
         for c in resp["tool_calls"]:
             messages.append({"role": "tool", "tool_call_id": c["id"],
-                              "content": tool_executor(c["name"], c["input"])})
+                              "content": _run_tool(tool_executor, c["name"], c["input"])})
     return ""
 
 
@@ -125,3 +138,7 @@ def _raw_call_groq(system_prompt: str, messages: list[dict], tools: list[ToolSpe
         return {"tool_calls": tool_calls, "text": msg.content}
     except groq.APIError as exc:
         raise LLMCallError(str(exc)) from exc
+    except json.JSONDecodeError as exc:
+        # HTTP 200 but the model's tool-call `arguments` string isn't valid JSON — a bad
+        # generation, not an SDK error. Same failure class as groq.APIError for our purposes.
+        raise LLMCallError(f"groq returned malformed tool-call arguments: {exc}") from exc

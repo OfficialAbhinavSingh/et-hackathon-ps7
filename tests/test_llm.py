@@ -67,6 +67,62 @@ def test_loop_stops_at_max_turns_and_returns_last_text(monkeypatch):
     assert result == ""  # no final text turn was ever produced
 
 
+def test_loop_translates_tool_executor_error_to_llm_call_error(monkeypatch):
+    """Live-mode crash guard: the weaker Groq model can emit a tool call whose arguments
+    don't match the tool schema (e.g. missing the 'query' key), so agent.py's executor
+    raises KeyError mid-loop. That must surface as LLMCallError — which agent.py already
+    retries/falls back on — not escape as a raw KeyError and 500 POST /events."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    def calls_tool(system, messages, tool_specs):
+        return {"tool_calls": [{"id": "c1", "name": "echo", "input": {}}], "text": None}
+
+    monkeypatch.setattr(llm, "_raw_call_claude", calls_tool)
+
+    def bad_executor(name, args):
+        return args["query"]  # KeyError — mirrors intel/agent.py's _make_tool_executor
+
+    with pytest.raises(LLMCallError):
+        run_agentic_tool_loop("sys", "user", [ECHO_TOOL], bad_executor)
+
+
+def test_raw_call_groq_translates_malformed_tool_arguments_to_llm_call_error(monkeypatch):
+    """Groq returns HTTP 200 but the model's tool-call `arguments` string is not valid JSON.
+    json.loads() then raises JSONDecodeError inside _raw_call_groq — must become LLMCallError,
+    not escape uncaught (it isn't a groq.APIError) and crash the pipeline."""
+    import groq as groq_module
+
+    class FakeFn:
+        name = "echo"
+        arguments = "{not valid json"
+
+    class FakeToolCall:
+        id = "c1"
+        function = FakeFn()
+
+    class FakeMessage:
+        tool_calls = [FakeToolCall()]
+        content = None
+
+    class FakeCompletions:
+        def create(self, **kwargs):
+            return type("Resp", (), {"choices": [type("C", (), {"message": FakeMessage()})()]})()
+
+    class FakeChat:
+        def __init__(self):
+            self.completions = FakeCompletions()
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(groq_module, "Groq", FakeClient)
+
+    with pytest.raises(LLMCallError):
+        llm._raw_call_groq("sys", [{"role": "user", "content": "hi"}], [ECHO_TOOL])
+
+
 def test_raw_call_claude_translates_anthropic_api_error_to_llm_call_error(monkeypatch):
     """Live bug (Groq's mirror-image): the provider SDK can reject a call server-side
     (bad request, rate limit, malformed generation) — this must become LLMCallError,

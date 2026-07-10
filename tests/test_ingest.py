@@ -1,4 +1,6 @@
-from intel.ingest import build_collection, query
+import json
+
+from intel.ingest import build_collection, load_records, query
 
 SAMPLE_RECORDS = [
     {"id": "T1041", "name": "Exfiltration Over C2 Channel",
@@ -32,3 +34,15 @@ def test_metadata_carries_source_type_and_name(tmp_path):
     results = query(coll, "sql injection remote code execution", n_results=1)
     assert results[0]["source_type"] == "cve"
     assert results[0]["name"] == "CVE-2023-99999"
+
+
+def test_load_records_concatenates_the_fetched_source_files(tmp_path):
+    """The ingest CLI reads the JSON that fetch_sources.py wrote (attack/cve/certin) and
+    concatenates them for build_collection. Missing files are skipped, not fatal."""
+    (tmp_path / "attack.json").write_text(json.dumps(SAMPLE_RECORDS[:2]))
+    (tmp_path / "cve.json").write_text(json.dumps(SAMPLE_RECORDS[2:]))
+    # certin.json intentionally absent — must be tolerated
+
+    records = load_records(tmp_path)
+    assert len(records) == 3
+    assert {r["id"] for r in records} == {"T1041", "T1021", "CVE-2023-99999"}

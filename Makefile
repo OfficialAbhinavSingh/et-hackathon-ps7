@@ -71,6 +71,23 @@ test: $(VENV) ## Run the backend test suite
 test-frontend: frontend/node_modules ## Run the frontend unit tests
 	cd frontend && npx vitest run
 
+# ---- intel / attribution agent (#16/#17) -----------------------------------
+# Two steps, both needed before ENRICH_MODE=live returns real attributions:
+# fetch writes data/intel/*.json (network: MITRE ATT&CK STIX + NVD CVE); ingest embeds them
+# into data/intel/chroma (both gitignored). Skipping ingest leaves the collection empty and
+# the live agent honestly returns UNKNOWN for everything.
+
+.PHONY: intel-fetch
+intel-fetch: $(VENV) ## Fetch MITRE ATT&CK + NVD CVE sources into data/intel/*.json
+	$(PY) -m intel.fetch_sources
+
+.PHONY: intel-ingest
+intel-ingest: $(VENV) ## Embed the fetched intel JSON into the Chroma collection
+	$(PY) -m intel.ingest
+
+.PHONY: intel-build
+intel-build: intel-fetch intel-ingest ## Fetch + ingest — full intel setup for ENRICH_MODE=live
+
 # ---- detection engine (#14/#15) --------------------------------------------
 # Isolated py3.12 venv: scikit-learn has no wheels for the system's py3.14, and the ML stack
 # is kept out of the FastAPI runtime. Needs python3.12 on PATH + the UNSW-NB15 CSVs in
