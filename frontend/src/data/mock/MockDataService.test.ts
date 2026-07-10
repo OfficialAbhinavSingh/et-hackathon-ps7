@@ -71,4 +71,15 @@ describe("MockDataService", () => {
     expect(svc.getAudit().length).toBeGreaterThan(2);
     expect((await svc.verifyAuditChain()).ok).toBe(true);
   });
+
+  it("attaches a 3-agent orchestration to each injected incident", async () => {
+    const svc = new MockDataService();
+    svc.triggerAttack();                        // fires one scripted incident immediately
+    await vi.advanceTimersByTimeAsync(2000);    // let attribution + containment land
+    const latest = svc.getIncidents()[0];
+    expect(latest.orchestration?.length).toBe(3);
+    expect(latest.orchestration?.map((a) => a.agent_id)).toEqual(
+      ["detection", "attribution", "response"],
+    );
+  });
 });

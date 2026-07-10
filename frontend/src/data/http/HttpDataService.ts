@@ -23,6 +23,7 @@ import type {
   Metrics,
   ConnectionState,
   AttackTechnique,
+  AgentActivity,
 } from "../../types/contracts";
 import { verifyChain, type VerifyResult } from "../hashChain";
 import {
@@ -44,7 +45,8 @@ const MAX_BACKOFF_MS = 15000;
 type StreamMessage =
   | { kind: "anomaly"; payload: AnomalyEvent }
   | { kind: "enriched"; payload: EnrichedIncident }
-  | { kind: "containment"; payload: ContainmentAction };
+  | { kind: "containment"; payload: ContainmentAction }
+  | { kind: "orchestration"; payload: { event_id: string; activities: AgentActivity[] } };
 
 export class HttpDataService implements DataService {
   private state: AccumState = { views: new Map(), order: [], timings: new Map(), reviews: new Map() };
@@ -140,7 +142,7 @@ export class HttpDataService implements DataService {
       const t = this.state.timings.get(id);
       if (t && !t.detectedAt) t.detectedAt = Date.now();
       this.tryComplete(id);
-    } else {
+    } else if (msg.kind === "containment") {
       const view = this.state.views.get(id);
       if (!view) return;
       view.containment = msg.payload;
@@ -149,6 +151,12 @@ export class HttpDataService implements DataService {
         if (!t.actionCreatedAt) t.actionCreatedAt = Date.now();
         if (msg.payload.status === "simulated_success" && !t.resolvedAt) t.resolvedAt = Date.now();
       }
+      this.notify(view);
+    } else {
+      // kind === "orchestration"
+      const view = this.state.views.get(id);
+      if (!view) return;
+      view.orchestration = msg.payload.activities;
       this.notify(view);
     }
   }

@@ -73,3 +73,11 @@ def test_approving_records_the_confirmed_technique_and_stays_verifiable(tmp_path
     assert len(entries) == 2  # the event + the approval
     assert "T1048" in entries[-1]["detail"]
     assert audit.verify() is True
+
+
+def test_process_fills_timings_dict_when_provided(tmp_path):
+    pipeline, _, _ = build(tmp_path, make_incident("high"))
+    timings = {}
+    pipeline.process(make_event(0.8), timings=timings)
+    assert "attribution_ms" in timings and "response_ms" in timings
+    assert isinstance(timings["attribution_ms"], int)

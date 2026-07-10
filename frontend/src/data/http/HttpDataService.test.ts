@@ -155,4 +155,49 @@ describe("HttpDataService (live path)", () => {
     expect(res.ok).toBe(true);
     expect(svc.getAudit().length).toBe(2);
   });
+
+  it("attaches orchestration activities to the incident view", () => {
+    const svc = new HttpDataService("http://api.test");
+    svc.start();
+    const es = FakeEventSource.instances[0];
+    es.send({ kind: "anomaly", payload: ANOMALY });
+    es.send({ kind: "enriched", payload: ENRICHED });
+    es.send({ kind: "containment", payload: CONTAINMENT });
+    es.send({
+      kind: "orchestration",
+      payload: {
+        event_id: ANOMALY.event_id,
+        activities: [
+          { agent_id: "detection", name: "Detection Agent", stage: 1, status: "ok", summary: "flagged", elapsed_ms: null },
+          { agent_id: "attribution", name: "Attribution & Prediction Agent", stage: 2, status: "ok", summary: "T1", elapsed_ms: 1200 },
+          { agent_id: "response", name: "Response Orchestrator Agent", stage: 3, status: "pending", summary: "isolate", elapsed_ms: 3 },
+        ],
+      },
+    });
+    const view = svc.getIncident(ANOMALY.event_id);
+    expect(view?.orchestration?.length).toBe(3);
+    expect(view?.orchestration?.[2].status).toBe("pending");
+    // containment still works after the switch change (guards the ingest-branch fix)
+    expect(view?.containment?.status).toBe(CONTAINMENT.status);
+  });
+
+  it("ignores an orchestration frame for an unknown event without crashing", () => {
+    // Frame can arrive before its IncidentView exists (anomaly/enriched not yet in) — the
+    // ingest guard drops it rather than throwing; the value replays from the backlog later.
+    const svc = new HttpDataService("");
+    svc.start();
+    const es = FakeEventSource.instances[0];
+    expect(() =>
+      es.send({
+        kind: "orchestration",
+        payload: {
+          event_id: "evt_unknown",
+          activities: [
+            { agent_id: "detection", name: "Detection Agent", stage: 1, status: "ok", summary: "flagged", elapsed_ms: null },
+          ],
+        },
+      }),
+    ).not.toThrow();
+    expect(svc.getIncidents().length).toBe(0);
+  });
 });

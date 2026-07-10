@@ -7,6 +7,8 @@
 and so Phase 3 can swap the stub enrichment for the real LLM agent without touching this.
 """
 
+from time import perf_counter
+
 from orchestrator import policy
 from orchestrator.schemas import ActionStatus, ActionType
 
@@ -23,8 +25,12 @@ class Pipeline:
         self.playbooks = playbooks
         self.decide = decide
 
-    def process(self, event) -> dict:
+    def process(self, event, timings=None) -> dict:
+        _t0 = perf_counter()
         incident = self.enrich(event)
+        if timings is not None:
+            timings["attribution_ms"] = round((perf_counter() - _t0) * 1000)
+        _t1 = perf_counter()
         decision = self.decide(event.anomaly_score, incident.severity)
         requires_approval = decision.requires_human_approval
         status = (
@@ -49,6 +55,8 @@ class Pipeline:
             requires_human_approval=requires_approval,
             audit_log_id=record["audit_log_id"],
         )
+        if timings is not None:
+            timings["response_ms"] = round((perf_counter() - _t1) * 1000)
         return {"incident": incident, "action": action}
 
     def approve(self, event_id: str, approver: str = "analyst", confirmed_technique=None):
