@@ -101,7 +101,20 @@ def test_frames_are_recorded_for_reconnect_backlog(tmp_path):
     client = TestClient(app)
     client.post("/events", json=EVENT)
     kinds = [m["kind"] for m in app.state.messages]
-    assert kinds == ["anomaly", "enriched", "containment"]
+    assert kinds == ["anomaly", "enriched", "containment", "orchestration"]
+
+
+def test_events_publishes_orchestration_frame_with_three_agents(tmp_path):
+    app = create_app(audit_path=tmp_path / "audit.jsonl", enrich=critical_enrich)
+    client = TestClient(app)
+    queue = app.state.broadcaster.subscribe()
+    client.post("/events", json=EVENT)
+    frames = [queue.get_nowait() for _ in range(4)]
+    assert [f["kind"] for f in frames] == ["anomaly", "enriched", "containment", "orchestration"]
+    payload = frames[3]["payload"]
+    assert payload["event_id"] == "evt_0001"
+    assert [a["agent_id"] for a in payload["activities"]] == ["detection", "attribution", "response"]
+    assert payload["activities"][2]["status"] == "pending"  # critical -> isolate_host -> pending
 
 
 def test_approval_is_appended_to_the_backlog(tmp_path):

@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
+from orchestrator.agents import build_orchestration
 from orchestrator.audit import AuditLog
 from orchestrator.pipeline import Pipeline
 from orchestrator.playbooks import PlaybookEngine
@@ -133,14 +134,22 @@ def create_app(audit_path="audit_log.jsonl", enrich=None, fixtures_path=DEFAULT_
 
     @app.post("/events")
     async def ingest(event: AnomalyEvent):
-        result = pipeline.process(event)
-        incident = result["incident"].model_dump(mode="json")
-        action = result["action"].model_dump(mode="json")
+        timings: dict = {}
+        result = pipeline.process(event, timings=timings)
+        incident_obj = result["incident"]
+        action_obj = result["action"]
+        incident = incident_obj.model_dump(mode="json")
+        action = action_obj.model_dump(mode="json")
         incidents[event.event_id] = {"incident": incident, "action": action}
-        # Three typed frames the dashboard accumulates by event_id (contract with frontend).
+        activities = build_orchestration(event, incident_obj, action_obj, timings)
+        # Four typed frames the dashboard accumulates by event_id (contract with frontend).
         await publish({"kind": "anomaly", "payload": event.model_dump(mode="json")})
         await publish({"kind": "enriched", "payload": incident})
         await publish({"kind": "containment", "payload": action})
+        await publish({"kind": "orchestration", "payload": {
+            "event_id": event.event_id,
+            "activities": [a.model_dump(mode="json") for a in activities],
+        }})
         return {"event_id": event.event_id, "status": action["status"]}
 
     @app.get("/incidents")
