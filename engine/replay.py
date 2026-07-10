@@ -31,7 +31,12 @@ def post_event(url: str, event) -> int:
     req = urllib.request.Request(
         f"{url}/events", data=body, headers={"content-type": "application/json"}, method="POST"
     )
-    with urllib.request.urlopen(req, timeout=5) as r:
+    # 60s, not 5s: with ENRICH_MODE=live the orchestrator's POST /events blocks on a real
+    # LLM tool-calling round trip (intel.agent.enrich), which can take several seconds —
+    # longer still if a retry kicks in (malformed JSON, ungrounded citation, or a transient
+    # provider API error each cost another full round trip). The stub path was instant;
+    # the live path isn't, and 30s still timed out under a stacked retry in live testing.
+    with urllib.request.urlopen(req, timeout=60) as r:
         return r.status
 
 
@@ -62,7 +67,7 @@ def main() -> None:
     for e in events:
         try:
             status = post_event(args.url, e)
-        except (urllib.error.URLError, ConnectionError) as exc:
+        except (urllib.error.URLError, ConnectionError, TimeoutError) as exc:
             print(f"\n! backend unreachable at {args.url} ({exc}). Is it running? "
                   f"(make backend)  — stopping.")
             break

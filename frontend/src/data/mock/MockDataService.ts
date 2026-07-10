@@ -262,6 +262,10 @@ export class MockDataService implements DataService {
     return [...this.audit];
   }
 
+  async refreshAudit(): Promise<void> {
+    // no-op — the mock appends audit entries synchronously as events are generated, always current
+  }
+
   async verifyAuditChain(): Promise<VerifyResult> {
     return verifyChain(this.audit);
   }

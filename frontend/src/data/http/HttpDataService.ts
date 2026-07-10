@@ -230,7 +230,7 @@ export class HttpDataService implements DataService {
 
   // ---- audit (render backend's chain, never regenerate) ------------------
 
-  private async refreshAudit(): Promise<void> {
+  async refreshAudit(): Promise<void> {
     try {
       const res = await fetch(`${this.baseUrl}/audit`);
       if (res.ok) this.audit = (await res.json()) as AuditEntry[];

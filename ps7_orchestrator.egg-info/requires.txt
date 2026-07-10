@@ -6,3 +6,14 @@ pydantic>=2
 [dev]
 pytest
 httpx
+
+[engine]
+scikit-learn
+pandas
+numpy
+joblib
+pydantic>=2
+
+[intel]
+chromadb
+requests

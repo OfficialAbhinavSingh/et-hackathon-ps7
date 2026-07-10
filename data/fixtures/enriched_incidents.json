@@ -2,40 +2,363 @@
   {
     "schema_version": "1.0",
     "event_id": "evt_0001",
-    "attack_technique": { "id": "T1048", "name": "Exfiltration Over Alternative Protocol" },
+    "attack_technique": {
+      "id": "T1048",
+      "name": "Exfiltration Over Alternative Protocol"
+    },
     "confidence": 0.87,
     "severity": "high",
-    "cve_refs": ["CVE-2024-1234"],
-    "certin_refs": ["CIAD-2024-0012"],
-    "narrative": "Large outbound transfer on non-standard port 4444 after hours from 10.0.0.5 to an external host — consistent with data exfiltration over an alternative protocol.",
-    "predicted_next": { "tactic": "Lateral Movement", "note": "watch east-west traffic from 10.0.0.5" },
-    "suggested_action": "isolate_host",
-    "ground_truth_technique": "T1048"
+    "cve_refs": [
+      "CVE-2024-1234"
+    ],
+    "certin_refs": [
+      "CIAD-2024-0012"
+    ],
+    "narrative": "Large outbound transfer on non-standard port 4444 after hours, consistent with exfiltration over an alternative protocol.",
+    "predicted_next": {
+      "tactic": "Lateral Movement",
+      "note": "watch east-west traffic from 10.0.0.5"
+    },
+    "suggested_action": "isolate_host"
   },
   {
     "schema_version": "1.0",
     "event_id": "evt_0002",
-    "attack_technique": { "id": "T1046", "name": "Network Service Discovery" },
-    "confidence": 0.72,
-    "severity": "medium",
+    "attack_technique": {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols"
+    },
+    "confidence": 0.15,
+    "severity": "low",
     "cve_refs": [],
     "certin_refs": [],
-    "narrative": "Sequential connections to many destination ports on 10.0.0.9 from 10.0.0.6 — port-scanning / service discovery behaviour.",
-    "predicted_next": { "tactic": "Lateral Movement", "note": "monitor for follow-on authentication attempts" },
-    "suggested_action": "monitor",
-    "ground_truth_technique": "T1046"
+    "narrative": "Traffic profile matches routine HTTPS; no retrieved technique matches strongly, confidence kept low.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
   },
   {
     "schema_version": "1.0",
     "event_id": "evt_0003",
-    "attack_technique": { "id": "T1110", "name": "Brute Force" },
-    "confidence": 0.80,
+    "attack_technique": {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols"
+    },
+    "confidence": 0.81,
     "severity": "high",
-    "cve_refs": ["CVE-2023-9999"],
-    "certin_refs": ["CIAD-2023-0044"],
-    "narrative": "57 failed authentication attempts from 10.0.0.7 against the domain controller 10.0.0.2 in a short window — brute-force / password-spraying.",
-    "predicted_next": { "tactic": "Credential Access", "note": "possible successful credential compromise; watch for new sessions" },
-    "suggested_action": "block_ip",
-    "ground_truth_technique": "T1110"
+    "cve_refs": [
+      "CVE-2023-4567"
+    ],
+    "certin_refs": [],
+    "narrative": "Sustained outbound flow to many destination ports over 8080 with high connection rate, consistent with C2 beaconing over an alternate HTTP port.",
+    "predicted_next": {
+      "tactic": "Command and Control",
+      "note": "watch for repeated beacon intervals from 10.0.0.7"
+    },
+    "suggested_action": "block_ip"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0004",
+    "attack_technique": {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols"
+    },
+    "confidence": 0.1,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Short flow, low packet count on port 80 \u2014 indistinguishable from routine browsing traffic.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0005",
+    "attack_technique": {
+      "id": "T1110.001",
+      "name": "Brute Force: Password Guessing"
+    },
+    "confidence": 0.93,
+    "severity": "critical",
+    "cve_refs": [
+      "CVE-2020-14145"
+    ],
+    "certin_refs": [
+      "CIAD-2024-0031"
+    ],
+    "narrative": "High SYN count against port 22 across 40 distinct destinations indicates SSH password-guessing sweep.",
+    "predicted_next": {
+      "tactic": "Lateral Movement",
+      "note": "watch for successful SSH auth from 10.0.0.9 enabling pivoting"
+    },
+    "suggested_action": "isolate_host"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0006",
+    "attack_technique": {
+      "id": "T1005",
+      "name": "Data from Local System"
+    },
+    "confidence": 0.25,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Elevated inbound bytes on MySQL port 3306; no strong grounding evidence of malicious staging.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0007",
+    "attack_technique": {
+      "id": "T1071",
+      "name": "Application Layer Protocol"
+    },
+    "confidence": 0.78,
+    "severity": "high",
+    "cve_refs": [
+      "CVE-2019-11500"
+    ],
+    "certin_refs": [],
+    "narrative": "High-entropy payload over IRC port 6667 with large outbound transfer, consistent with IRC-based command and control.",
+    "predicted_next": {
+      "tactic": "Command and Control",
+      "note": "watch for repeated connections to 198.51.100.7"
+    },
+    "suggested_action": "block_ip"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0008",
+    "attack_technique": {
+      "id": "T1071.004",
+      "name": "Application Layer Protocol: DNS"
+    },
+    "confidence": 0.12,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Low packet count, short flow duration on port 53 \u2014 consistent with routine DNS resolution.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0009",
+    "attack_technique": {
+      "id": "T1210",
+      "name": "Exploitation of Remote Services"
+    },
+    "confidence": 0.92,
+    "severity": "critical",
+    "cve_refs": [
+      "CVE-2017-0144"
+    ],
+    "certin_refs": [
+      "CIAD-2024-0044"
+    ],
+    "narrative": "Large outbound SMB transfer (port 445) to 35 distinct destinations, consistent with SMB exploitation and rapid lateral spread.",
+    "predicted_next": {
+      "tactic": "Exfiltration",
+      "note": "large SMB transfer volume suggests staged data ready for exfiltration"
+    },
+    "suggested_action": "isolate_host"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0010",
+    "attack_technique": {
+      "id": "T1105",
+      "name": "Ingress Tool Transfer"
+    },
+    "confidence": 0.35,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Mild connection-rate anomaly on FTP port 21; consistent with, but not conclusive of, tool staging.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0011",
+    "attack_technique": {
+      "id": "T1110.001",
+      "name": "Brute Force: Password Guessing"
+    },
+    "confidence": 0.8,
+    "severity": "high",
+    "cve_refs": [
+      "CVE-2019-0708"
+    ],
+    "certin_refs": [
+      "CIAD-2024-0052"
+    ],
+    "narrative": "Elevated SYN count and connection rate against RDP port 3389, consistent with credential brute-forcing.",
+    "predicted_next": {
+      "tactic": "Lateral Movement",
+      "note": "successful RDP auth on 10.0.0.11 would enable lateral movement"
+    },
+    "suggested_action": "block_ip"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0012",
+    "attack_technique": {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols"
+    },
+    "confidence": 0.11,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Short-lived low-volume flow on port 443 \u2014 consistent with routine HTTPS.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0013",
+    "attack_technique": {
+      "id": "T1571",
+      "name": "Non-Standard Port"
+    },
+    "confidence": 0.89,
+    "severity": "critical",
+    "cve_refs": [
+      "CVE-2024-1234"
+    ],
+    "certin_refs": [
+      "CIAD-2024-0012"
+    ],
+    "narrative": "High-entropy payload and large outbound transfer over non-standard port 4444 across 28 destinations, consistent with Meterpreter-style C2.",
+    "predicted_next": {
+      "tactic": "Command and Control",
+      "note": "watch 10.0.0.8 for repeated connections on non-standard ports"
+    },
+    "suggested_action": "isolate_host"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0014",
+    "attack_technique": {
+      "id": "T1071.003",
+      "name": "Application Layer Protocol: Mail Protocols"
+    },
+    "confidence": 0.12,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Small flow on SMTP port 25 \u2014 consistent with routine outbound mail.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0015",
+    "attack_technique": {
+      "id": "T1110.001",
+      "name": "Brute Force: Password Guessing"
+    },
+    "confidence": 0.68,
+    "severity": "medium",
+    "cve_refs": [
+      "CVE-2016-10229"
+    ],
+    "certin_refs": [],
+    "narrative": "Elevated SYN count and connection rate against Telnet port 23 across 19 destinations, consistent with default-credential scanning.",
+    "predicted_next": {
+      "tactic": "Lateral Movement",
+      "note": "watch for successful telnet auth from 10.0.0.4"
+    },
+    "suggested_action": "block_ip"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0016",
+    "attack_technique": {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols"
+    },
+    "confidence": 0.22,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Mild inbound-byte anomaly on MySQL port 3306; no strong grounding for a specific technique.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0017",
+    "attack_technique": {
+      "id": "T1571",
+      "name": "Non-Standard Port"
+    },
+    "confidence": 0.95,
+    "severity": "critical",
+    "cve_refs": [
+      "CVE-2024-1234"
+    ],
+    "certin_refs": [
+      "CIAD-2024-0012"
+    ],
+    "narrative": "Very large outbound transfer and elevated SYN count over non-standard port 4444, the highest-confidence exfiltration signal in this set.",
+    "predicted_next": {
+      "tactic": "Exfiltration",
+      "note": "high outbound volume from 10.0.0.2 may indicate active data theft in progress"
+    },
+    "suggested_action": "isolate_host"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0018",
+    "attack_technique": {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols"
+    },
+    "confidence": 0.14,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Short flow, low packet count on port 80 \u2014 consistent with routine browsing traffic.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0019",
+    "attack_technique": {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols"
+    },
+    "confidence": 0.83,
+    "severity": "high",
+    "cve_refs": [
+      "CVE-2023-4567"
+    ],
+    "certin_refs": [],
+    "narrative": "Sustained outbound flow to 33 distinct destination ports over 8080 with high connection rate, consistent with C2 beaconing.",
+    "predicted_next": {
+      "tactic": "Command and Control",
+      "note": "watch for repeated beacon intervals from 10.0.0.10"
+    },
+    "suggested_action": "block_ip"
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "evt_0020",
+    "attack_technique": {
+      "id": "T1021.004",
+      "name": "Remote Services: SSH"
+    },
+    "confidence": 0.3,
+    "severity": "low",
+    "cve_refs": [],
+    "certin_refs": [],
+    "narrative": "Mild anomaly on SSH port 22 with low duration ratio; insufficient grounding for a high-confidence call.",
+    "predicted_next": null,
+    "suggested_action": "monitor"
   }
 ]

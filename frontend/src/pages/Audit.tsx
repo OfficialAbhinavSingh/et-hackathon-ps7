@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, ShieldAlert, FlaskConical } from "lucide-react";
 import { useIncidents, dataService } from "@/hooks/useIncidents";
 import { verifyChain, type VerifyResult } from "@/data/hashChain";
@@ -7,8 +7,22 @@ import { Panel, PanelHeader, Button, EmptyState } from "@/components/ui/primitiv
 import { shortHash } from "@/lib/utils";
 
 export default function Audit() {
-  useIncidents(); // re-render as new entries append
-  const entries = dataService.getAudit();
+  const { incidents } = useIncidents(); // re-render (and re-fetch below) as new entries append
+  const [entries, setEntries] = useState<AuditEntry[]>(() => dataService.getAudit());
+
+  useEffect(() => {
+    let alive = true;
+    dataService.refreshAudit().then(() => {
+      if (alive) setEntries(dataService.getAudit());
+    });
+    return () => {
+      alive = false;
+    };
+    // re-fetch whenever the incident stream patches — the backend appends audit entries on
+    // every anomaly/containment decision, so a page opened after events already happened (or
+    // idle between events) must not stay stuck on a stale/empty snapshot.
+  }, [incidents]);
+
   const [tamperIdx, setTamperIdx] = useState<number | null>(null);
   const [result, setResult] = useState<VerifyResult | null>(null);
 

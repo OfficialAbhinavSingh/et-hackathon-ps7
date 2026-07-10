@@ -122,3 +122,31 @@ def test_broadcaster_delivers_to_subscribers():
         return await q.get()
 
     assert asyncio.run(scenario()) == {"hello": "world"}
+
+
+def test_live_enrich_mode_uses_intel_agent_when_env_flag_set(tmp_path, monkeypatch):
+    import orchestrator.main as main_mod
+
+    called = {}
+
+    def fake_enrich(event, collection):
+        called["event_id"] = event.event_id
+        return EnrichedIncident(
+            event_id=event.event_id,
+            attack_technique={"id": "T9999", "name": "test"},
+            confidence=0.5,
+            severity="low",
+            narrative="test",
+            suggested_action="monitor",
+        )
+
+    monkeypatch.setenv("ENRICH_MODE", "live")
+    monkeypatch.setattr("intel.agent.enrich", fake_enrich)
+    monkeypatch.setattr("intel.ingest.build_collection", lambda records, persist_dir: object())
+
+    app = main_mod.create_app(audit_path=tmp_path / "audit.jsonl")
+    client = TestClient(app)
+    r = client.post("/events", json=EVENT)
+
+    assert r.status_code == 200
+    assert called["event_id"] == "evt_0001"
