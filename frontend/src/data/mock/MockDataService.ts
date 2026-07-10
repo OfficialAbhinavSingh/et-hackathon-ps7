@@ -17,6 +17,7 @@ import type {
   ConnectionState,
   AttackTechnique,
   Actor,
+  AgentActivity,
 } from "../../types/contracts";
 import { ANOMALY_FIXTURES, ENRICHED_FIXTURES } from "../fixtures";
 import { decide } from "../policy";
@@ -164,6 +165,31 @@ export class MockDataService implements DataService {
       };
       t.actionCreatedAt = Date.now();
       view.containment = containment;
+      const attributed = incident.attack_technique.id !== "UNKNOWN";
+      const activities: AgentActivity[] = [
+        {
+          agent_id: "detection", name: "Detection Agent", stage: 1, status: "ok",
+          summary: `${event.is_anomaly ? "flagged" : "normal"} · score ${event.anomaly_score}`,
+          elapsed_ms: null,
+        },
+        {
+          agent_id: "attribution", name: "Attribution & Prediction Agent", stage: 2,
+          status: attributed ? "ok" : "unknown",
+          summary: attributed
+            ? `${incident.attack_technique.id} · conf ${incident.confidence.toFixed(2)}`
+            : `unattributed · conf ${incident.confidence.toFixed(2)}`,
+          elapsed_ms: Math.round(attributionDelay),
+        },
+        {
+          agent_id: "response", name: "Response Orchestrator Agent", stage: 3,
+          status: decision.requires_human_approval ? "pending" : "ok",
+          summary: decision.requires_human_approval
+            ? `${decision.action} · pending approval`
+            : `${decision.action} · approved`,
+          elapsed_ms: 300,
+        },
+      ];
+      view.orchestration = activities;
       this.notify(view);
 
       if (!decision.requires_human_approval) {
