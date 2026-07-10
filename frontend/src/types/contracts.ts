@@ -42,6 +42,16 @@ export interface PredictedNext {
   note: string;
 }
 
+/** Stage of the 3-agent orchestration view (#28). Observability only — not a core contract. */
+export interface AgentActivity {
+  agent_id: "detection" | "attribution" | "response";
+  name: string;
+  stage: number; // 1..3
+  status: "ok" | "pending" | "unknown";
+  summary: string;
+  elapsed_ms: number | null; // null for detection (scored in engine/, not the orchestrator)
+}
+
 /** Contract 1 — Anomaly event. Carries the network-flow facts (IPs, ports, raw features). */
 export interface AnomalyEvent {
   schema_version: "1.0";
@@ -92,6 +102,8 @@ export interface IncidentView {
   event: AnomalyEvent;
   incident: EnrichedIncident;
   containment?: ContainmentAction;
+  /** 3-agent hand-off view for this event (#28), set when the orchestration frame arrives. */
+  orchestration?: AgentActivity[];
 }
 
 export type ConnectionState = "connected" | "reconnecting" | "offline";
