@@ -180,4 +180,24 @@ describe("HttpDataService (live path)", () => {
     // containment still works after the switch change (guards the ingest-branch fix)
     expect(view?.containment?.status).toBe(CONTAINMENT.status);
   });
+
+  it("ignores an orchestration frame for an unknown event without crashing", () => {
+    // Frame can arrive before its IncidentView exists (anomaly/enriched not yet in) — the
+    // ingest guard drops it rather than throwing; the value replays from the backlog later.
+    const svc = new HttpDataService("");
+    svc.start();
+    const es = FakeEventSource.instances[0];
+    expect(() =>
+      es.send({
+        kind: "orchestration",
+        payload: {
+          event_id: "evt_unknown",
+          activities: [
+            { agent_id: "detection", name: "Detection Agent", stage: 1, status: "ok", summary: "flagged", elapsed_ms: null },
+          ],
+        },
+      }),
+    ).not.toThrow();
+    expect(svc.getIncidents().length).toBe(0);
+  });
 });

@@ -169,7 +169,7 @@ export class MockDataService implements DataService {
       const activities: AgentActivity[] = [
         {
           agent_id: "detection", name: "Detection Agent", stage: 1, status: "ok",
-          summary: `${event.is_anomaly ? "flagged" : "normal"} · score ${event.anomaly_score}`,
+          summary: `${event.is_anomaly ? "flagged" : "normal"} · score ${event.anomaly_score.toFixed(2)}`,
           elapsed_ms: null,
         },
         {

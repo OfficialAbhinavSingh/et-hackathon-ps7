@@ -74,4 +74,13 @@ def test_response_ok_when_auto_contained():
     resp = build_orchestration(_event(), _incident(),
                                _action(ActionStatus.simulated_success, False), {})[2]
     assert resp.status == "ok"
-    assert "simulated_success" in resp.summary
+    assert "simulated success" in resp.summary  # human label, no raw enum underscore
+
+
+def test_response_failed_or_rejected_is_unknown_not_green_ok():
+    # A failed simulation or an analyst-rejected action must NOT render as a green ✓ success.
+    for status in (ActionStatus.failed, ActionStatus.rejected):
+        resp = build_orchestration(_event(), _incident(),
+                                   _action(status, False), {})[2]
+        assert resp.status == "unknown", status
+        assert status.value in resp.summary

@@ -52,7 +52,7 @@ describe("latestOrchestration", () => {
     const v = view("e2", acts, resolved);
     const result = latestOrchestration([v, view("e1")])!;
     expect(result[2].status).toBe("ok");
-    expect(result[2].summary).toBe("isolate_host · simulated_success");
+    expect(result[2].summary).toBe("isolate_host · simulated success");
     // Detection/Attribution are untouched — only Response is derived live.
     expect(result[0]).toEqual(acts[0]);
     expect(result[1]).toEqual(acts[1]);
@@ -62,7 +62,17 @@ describe("latestOrchestration", () => {
     const v = view("e2", acts, containment("pending_approval"));
     const result = latestOrchestration([v, view("e1")])!;
     expect(result[2].status).toBe("pending");
-    expect(result[2].summary).toBe("isolate_host · pending_approval");
+    expect(result[2].summary).toBe("isolate_host · pending approval");
+  });
+
+  it("shows 'unknown' (not a green ok) when containment failed or was rejected", () => {
+    // A failed simulation or analyst rejection must never render as a success ✓.
+    for (const status of ["failed", "rejected"] as const) {
+      const v = view("e2", acts, containment(status));
+      const result = latestOrchestration([v, view("e1")])!;
+      expect(result[2].status).toBe("unknown");
+      expect(result[2].summary).toBe(`isolate_host · ${status}`);
+    }
   });
 
   it("falls back to the frozen activities when no containment is present yet", () => {

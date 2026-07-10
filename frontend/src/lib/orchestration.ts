@@ -1,4 +1,24 @@
-import type { ContainmentAction, IncidentView, AgentActivity } from "@/types/contracts";
+import type { ActionStatus, ContainmentAction, IncidentView, AgentActivity } from "@/types/contracts";
+
+// Map the containment lifecycle to the Response agent's UI status. Anything unlisted is "ok".
+// rejected/failed must NOT read as a green ✓ — they map to "unknown" (⚠) so a failed or
+// analyst-rejected containment never renders as success. Kept in lockstep with backend
+// orchestrator/agents.py (_RESPONSE_UI_STATUS).
+const RESPONSE_UI_STATUS: Partial<Record<ActionStatus, AgentActivity["status"]>> = {
+  pending_approval: "pending",
+  rejected: "unknown",
+  failed: "unknown",
+};
+
+// Human-readable label per status (no raw enum underscores in the panel summary). Lockstep
+// with backend orchestrator/agents.py (_STATUS_LABEL).
+const STATUS_LABEL: Record<ActionStatus, string> = {
+  pending_approval: "pending approval",
+  approved: "approved",
+  simulated_success: "simulated success",
+  rejected: "rejected",
+  failed: "failed",
+};
 
 /**
  * The Response agent's activity is built once, at /events time — frozen with whatever status
@@ -12,8 +32,8 @@ function withLiveResponseStatus(activities: AgentActivity[], containment?: Conta
   if (!containment) return activities;
   return activities.map((a) => {
     if (a.agent_id !== "response") return a;
-    const pending = containment.status === "pending_approval";
-    return { ...a, status: pending ? "pending" : "ok", summary: `${containment.action} · ${containment.status}` };
+    const status = RESPONSE_UI_STATUS[containment.status] ?? "ok";
+    return { ...a, status, summary: `${containment.action} · ${STATUS_LABEL[containment.status]}` };
   });
 }
 
