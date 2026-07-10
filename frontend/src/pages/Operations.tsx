@@ -5,14 +5,20 @@ import { IncidentFeed } from "@/components/IncidentFeed";
 import { MitreGrid } from "@/components/MitreGrid";
 import { AttackGraph } from "@/components/AttackGraph";
 import { Panel, PanelHeader } from "@/components/ui/primitives";
+import { AgentOrchestration } from "@/components/AgentOrchestration";
 
 export default function Operations() {
   const { incidents } = useIncidents();
   const [activeTechnique, setActiveTechnique] = useState<string | null>(null);
 
   return (
-    <div className="grid h-full grid-rows-[auto_1fr] gap-3 p-3">
+    <div className="grid h-full grid-rows-[auto_auto_1fr] gap-3 p-3">
       <MetricsBar />
+
+      <Panel>
+        <PanelHeader eyebrow="multi-agent pipeline" title="Agent orchestration" right={<span className="mono text-[10px] text-ink-faint">detection → attribution → response</span>} />
+        <AgentOrchestration incidents={incidents} />
+      </Panel>
 
       <div className="grid min-h-0 grid-cols-[minmax(300px,1fr)_1.35fr_1.15fr] gap-3">
         <Panel>
