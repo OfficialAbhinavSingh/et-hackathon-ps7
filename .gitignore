@@ -14,6 +14,10 @@ data/intel/
 
 # Runtime state
 audit_log.jsonl
+demo-logs/
+
+# local claude worktrees / session state
+.claude/
 
 # Local secrets — never commit
 .env

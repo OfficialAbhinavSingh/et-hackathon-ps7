@@ -10,13 +10,16 @@ An **AI Security Operations Center** for critical national infrastructure (ET AI
 
 ## Current state vs. plan
 
-Only the **orchestrator backend spine is implemented**. `docs/finalplan.md` describes a larger system built in phases; these parts are planned but **not yet present**, so don't assume they exist:
-- `engine/` — Isolation Forest detection agent (ML). Not built.
-- `intel/` — RAG + Claude (`claude-sonnet-4-6`) attribution agent. Not built. Enrichment is currently a **stub** that maps events to committed fixtures (`orchestrator/main.py:_make_stub_enrich`).
-- `orchestrator/graph.py` — attack-path graph. Not built.
-- `frontend/` — React/Vite dashboard. `node_modules/` is installed but `package.json` and `src/` are not committed yet; `make frontend`/`make dev` will not work until they are.
+All four pillars from `docs/finalplan.md` are built and wired end-to-end on `main`:
+- `engine/` — Isolation Forest detection agent (ML), trained on UNSW-NB15. Built (`preprocess.py`, `train.py`, `infer.py`, `replay.py`). Results in `engine/RESULTS.md`.
+- `intel/` — RAG + Claude (`claude-sonnet-4-6`, Groq fallback) attribution agent, retrieve-then-cite over a Chroma index of MITRE ATT&CK STIX + NVD CVE + CERT-In. Built (`fetch_sources.py`, `ingest.py`, `agent.py`, `llm.py`). Wired live behind `ENRICH_MODE=live`; the fixture-based stub enrichment (`orchestrator/main.py:_make_stub_enrich`) remains the default/mock fallback.
+- Attack-path / lateral-movement graph — deliberately **not** a backend `orchestrator/graph.py`; built client-side instead (`frontend/src/data/derive.ts::deriveGraph`, rendered in `GraphPage.tsx`). Issue #31 closed as satisfied by this.
+- `frontend/` — React 19 + Vite + Tailwind + shadcn dashboard. Fully committed (`package.json`, `src/`). `VITE_DATA_SOURCE=mock|live` seam: mock mode runs off 20 committed fixtures, live mode streams from the real backend via SSE.
+- Multi-agent orchestration wrapper (`orchestrator/agents.py::build_orchestration`) — frames Detection → Attribution → Response as three named agents, streamed as a 4th SSE frame, rendered on the Operations page (`AgentOrchestration.tsx`).
 
-The design is "walking skeleton, then swap mocks for real": each future pillar replaces one mock behind an unchanging contract, so `main` stays runnable. When implementing a planned pillar, inject it through the existing seams rather than rewriting the pipeline.
+Outstanding: architecture diagram, pitch deck, demo video (issue #33 — non-code deliverables, not part of this codebase). PR #35 (real srcip/dstip/ports from the raw UNSW-NB15 dump, replacing the current synthetic-topology inference) is open as a draft, not yet implemented.
+
+The design was "walking skeleton, then swap mocks for real": each pillar replaced a mock behind an unchanging contract, so `main` stayed runnable throughout. When touching a pillar, keep injecting through the existing seams (`enrich=`, `ENRICH_MODE`, `VITE_DATA_SOURCE`) rather than rewriting the pipeline.
 
 ## Commands
 
