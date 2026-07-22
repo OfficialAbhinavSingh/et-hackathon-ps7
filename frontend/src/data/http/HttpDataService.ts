@@ -1,5 +1,5 @@
 /**
- * HttpDataService — live implementation of the DataService seam. STUB until backend #11 lands.
+ * HttpDataService — live implementation of the DataService seam, verified against the real backend.
  *
  * Real endpoints (the ONLY ones the backend exposes):
  *   GET  /stream         Server-Sent Events — anomaly / enriched / containment payloads
@@ -10,9 +10,8 @@
  * stream state using the SAME derive.ts functions the mock uses — flipping VITE_DATA_SOURCE
  * requires zero component changes.
  *
- * TODO(#11): confirm the SSE message envelope with Dev 1. This assumes each event is tagged
- * with a `kind` of "anomaly" | "enriched" | "containment" carrying the matching contract
- * payload. Adjust parseMessage() once the real shape is frozen.
+ * The SSE message envelope tags each event with a `kind` of "anomaly" | "enriched" | "containment"
+ * carrying the matching contract payload — see parseMessage().
  */
 import type {
   AnomalyEvent,

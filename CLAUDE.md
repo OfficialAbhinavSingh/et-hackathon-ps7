@@ -17,7 +17,7 @@ All four pillars from `docs/finalplan.md` are built and wired end-to-end on `mai
 - `frontend/` — React 19 + Vite + Tailwind + shadcn dashboard. Fully committed (`package.json`, `src/`). `VITE_DATA_SOURCE=mock|live` seam: mock mode runs off 20 committed fixtures, live mode streams from the real backend via SSE.
 - Multi-agent orchestration wrapper (`orchestrator/agents.py::build_orchestration`) — frames Detection → Attribution → Response as three named agents, streamed as a 4th SSE frame, rendered on the Operations page (`AgentOrchestration.tsx`).
 
-Outstanding: architecture diagram, pitch deck, demo video (issue #33 — non-code deliverables, not part of this codebase). PR #35 (real srcip/dstip/ports from the raw UNSW-NB15 dump, replacing the current synthetic-topology inference) is open as a draft, not yet implemented.
+Outstanding: architecture diagram, pitch deck, demo video (issue #33 — non-code deliverables, not part of this codebase). PR #35 (real srcip/dstip/ports from the raw UNSW-NB15 dump, replacing the current synthetic-topology inference) was scoped as a draft but closed unmerged — not implemented, out of scope for this submission.
 
 The design was "walking skeleton, then swap mocks for real": each pillar replaced a mock behind an unchanging contract, so `main` stayed runnable throughout. When touching a pillar, keep injecting through the existing seams (`enrich=`, `ENRICH_MODE`, `VITE_DATA_SOURCE`) rather than rewriting the pipeline.
 
